@@ -38,6 +38,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Patch invalid AGP version in capacitor/android
+        run: |
+          find node_modules/@capacitor/android -name "*.gradle" -exec \
+            sed -i 's/com.android.tools.build:gradle:8\.13\.0/com.android.tools.build:gradle:8.5.1/g' {} +
+
       - name: Build web assets
         run: npm run build
 
