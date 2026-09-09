@@ -118,7 +118,7 @@ export const InstallAppBanner: React.FC = () => {
           }}
         >
           <img
-            src="/icon-192.png"
+            src="./icon-192.png"
             alt="TorqMax App"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
@@ -247,7 +247,7 @@ export const InstallAppBanner: React.FC = () => {
                 background: '#0D0D0D',
               }}
             >
-              <img src="/icon-192.png" alt="TorqMax" style={{ width: '100%', height: '100%' }} />
+              <img src="./icon-192.png" alt="TorqMax" style={{ width: '100%', height: '100%' }} />
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 8px' }}>
               Install on iOS

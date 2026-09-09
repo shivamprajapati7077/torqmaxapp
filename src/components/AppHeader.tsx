@@ -28,7 +28,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true }) 
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {/* Real TorqMax Logo — mix-blend-mode:screen removes the white bg */}
           <img
-            src="/torqmax-logo.png"
+            src="./torqmax-logo.png"
             alt="TorqMax"
             style={{
               height: 44,

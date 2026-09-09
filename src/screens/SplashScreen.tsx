@@ -26,7 +26,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ fading }) => {
 
         {/* Real TorqMax logo with screen blend */}
         <img
-          src="/torqmax-logo.png"
+          src="./torqmax-logo.png"
           alt="TorqMax"
           style={{
             width: 110,
