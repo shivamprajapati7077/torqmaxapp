@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TorqMax</string>
+    <string name="title_activity_main">TorqMax</string>
+    <string name="package_name">com.torqmax.app</string>
+    <string name="custom_url_scheme">com.torqmax.app</string>
+</resources>
