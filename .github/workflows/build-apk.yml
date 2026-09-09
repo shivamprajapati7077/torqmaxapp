@@ -45,6 +45,7 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets/public
           cp -r dist/* android/app/src/main/assets/public/
+          rm -f android/app/src/main/assets/public/*.apk
           echo '{"appId":"com.torqmax.app","appName":"TorqMax","webDir":"dist"}' > android/app/src/main/assets/capacitor.config.json
           echo '' > android/app/src/main/assets/capacitor.plugins.json
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > android/local.properties
@@ -53,7 +54,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tail -80
+          ./gradlew assembleDebug --no-daemon
 
       - name: Embed APK into Web Dist & Root
         run: |
