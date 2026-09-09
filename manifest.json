@@ -1,0 +1,57 @@
+{
+  "id": "/",
+  "name": "TorqMax Auto Accessories",
+  "short_name": "TorqMax",
+  "description": "Precision bespoke car floor mats custom-fit for 100+ car models in India.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#0D0D0D",
+  "theme_color": "#0D0D0D",
+  "lang": "en-IN",
+  "categories": ["shopping", "automotive", "business"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Custom Floor Mats",
+      "short_name": "Mats",
+      "description": "Configure bespoke floor mats for your vehicle",
+      "url": "/?tab=products",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Contact TorqMax",
+      "short_name": "Contact",
+      "description": "WhatsApp dispatch & support",
+      "url": "/?tab=contact",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
