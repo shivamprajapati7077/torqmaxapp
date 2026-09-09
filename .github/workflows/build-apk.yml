@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-apk:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -55,43 +55,20 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tail -80
 
+      - name: Embed APK into Web Dist & Root
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk ./dist/TorqMax-Android.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk ./dist/app-debug.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk ./TorqMax-Android.apk
+          ls -lh ./dist/TorqMax-Android.apk ./TorqMax-Android.apk
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TorqMax-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ./TorqMax-Android.apk
 
-  deploy-web:
-    needs: build-apk
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build web assets
-        run: npm run build
-
-      - name: Download APK Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: TorqMax-Android-APK
-          path: ./apk-output
-
-      - name: Copy APK to Dist
-        run: |
-          cp ./apk-output/app-debug.apk ./dist/TorqMax-Android.apk || true
-          cp ./apk-output/app-debug.apk ./dist/app-debug.apk || true
-          ls -la ./dist
-
-      - name: Deploy to GitHub Pages
+      - name: Deploy Web App & APK to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
