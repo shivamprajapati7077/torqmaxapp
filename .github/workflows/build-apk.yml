@@ -41,52 +41,50 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Prepare Android assets & config
+      - name: Prepare Android assets & Gradle properties
         run: |
           mkdir -p android/app/src/main/assets/public
           cp -r dist/* android/app/src/main/assets/public/
           echo '{"appId":"com.torqmax.app","appName":"TorqMax","webDir":"dist"}' > android/app/src/main/assets/capacitor.config.json
-          echo '[]' > android/app/src/main/assets/capacitor.plugins.json
+          echo '' > android/app/src/main/assets/capacitor.plugins.json
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > android/local.properties
 
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-
-      - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk TorqMax-Android.apk
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tail -80
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TorqMax-Android-APK
-          path: TorqMax-Android.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Create GitHub Release with APK
+      - name: Publish APK as GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
-          name: TorqMax Android App
+          name: TorqMax Android App — Latest Build
           body: |
-            ## TorqMax Android App — Latest Build
+            ## Download TorqMax for Android
 
-            Download and install the official TorqMax Auto Accessories Android application.
+            Tap **TorqMax-Android.apk** below to download and install the TorqMax Auto Accessories app.
 
-            ### Installation
-            1. Download **TorqMax-Android.apk** below
-            2. On your Android phone, go to **Settings → Security → Install unknown apps**
-            3. Allow installation from your file manager or browser
-            4. Open the downloaded APK and tap **Install**
+            ### How to install
+            1. Download the APK file
+            2. On your Android phone: **Settings → Security → Install unknown apps** → allow your browser
+            3. Open the downloaded file and tap **Install**
 
-            ### Features
-            - 103+ car models with custom mat configuration
-            - Interactive 3D mat studio (Checkmate & Exotic styles)
-            - Black and Beige colour options
-            - 1-tap WhatsApp direct order
-            - Offline capable
-          files: TorqMax-Android.apk
+            ### What's inside
+            - 103+ car models (Hatchback, Sedan, SUV, Luxury)
+            - Checkmate & Exotic mat styles
+            - Black & Beige colour options
+            - Live 3D mat preview
+            - 1-tap WhatsApp ordering
+            - Works offline
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          asset_name: TorqMax-Android.apk
           make_latest: true
 
   deploy-web:
