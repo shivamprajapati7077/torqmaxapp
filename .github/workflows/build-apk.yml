@@ -55,9 +55,10 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Copy APK to Root
+      - name: Prepare APK File
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk TorqMax-Android.apk
+          ls -lh TorqMax-Android.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -65,14 +66,15 @@ jobs:
           name: TorqMax-Android-APK
           path: TorqMax-Android.apk
 
-      - name: Release APK
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.0
-          name: "TorqMax Android App (Official APK)"
-          draft: false
-          prerelease: false
-          files: TorqMax-Android.apk
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v1.0.0 TorqMax-Android.apk \
+            --title "TorqMax Android App v1.0.0" \
+            --notes "Official APK build for TorqMax Auto Accessories Android app." \
+            --clobber || \
+          gh release upload v1.0.0 TorqMax-Android.apk --clobber || true
 
   deploy-web:
     needs: build-apk
@@ -92,7 +94,7 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Download APK into Web Dist
+      - name: Download Built APK into Web Dist
         uses: actions/download-artifact@v4
         with:
           name: TorqMax-Android-APK
