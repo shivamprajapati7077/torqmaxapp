@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Product — TorqMax</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="./assets/product-DukP_I9x.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/main-7TLzJnHq.js">
+  <link rel="modulepreload" crossorigin href="./assets/shop-vXpf2Dqa.js">
+  <link rel="stylesheet" crossorigin href="./assets/main-4yvhKQ0c.css">
+</head>
+<body>
+<nav class="navbar" id="navbar">
+  <div class="nav-links">
+    <a href="index.html" id="nav-home">Home</a>
+    <a href="shop.html" id="nav-shop">Products</a>
+    <a href="about.html" id="nav-about">About</a>
+    <a href="contact.html" id="nav-contact">Contact Us</a>
+    <a href="download.html" id="nav-download" style="background:linear-gradient(135deg,#D97706,#B45309);color:#fff;padding:6px 14px;border-radius:20px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(217,119,6,.35);font-size:.85rem;">📲 Download App</a>
+  </div>
+  <div style="display:flex;align-items:center;gap:1.5rem">
+    <a href="cart.html" class="nav-cart" id="cart-link">🛒 Cart <span class="cart-badge" id="cart-count" style="display:none">0</span></a>
+    <a href="index.html" class="nav-logo" style="display:flex;align-items:center">
+      <img src="./assets/logo-CZsJps28.png" alt="TORQMAX" style="height:48px;display:block">
+    </a>
+  </div>
+  <button class="nav-mobile-toggle" id="nav-toggle" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div style="padding-top:var(--nav-h);background:var(--off-white);min-height:100vh">
+  <div class="container">
+    <div class="product-layout">
+      <div>
+        <a href="shop.html" class="back-link">← Back to Shop</a>
+        <div class="gallery-main"><img id="main-img" src="" alt="Product"></div>
+        <div class="gallery-thumbs" id="thumbs"></div>
+      </div>
+      <div>
+        <span id="prod-badge" class="badge-pill" style="position:static;display:inline-block;margin-bottom:.75rem"></span>
+        <h1 class="prod-detail-title" id="prod-name">Loading...</h1>
+        <div class="stars" id="prod-stars"></div>
+        <div class="prod-detail-price" id="prod-price"></div>
+        <p id="prod-desc" style="color:var(--text-muted);font-size:.95rem;line-height:1.8;margin-bottom:1.5rem"></p>
+        <p style="font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);font-weight:600;margin-bottom:.75rem">Key Features</p>
+        <ul class="features-list" id="prod-features"></ul>
+        <p style="font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);font-weight:600;margin-bottom:.5rem">Select Your Car Model</p>
+        <select class="car-select" id="car-select"><option value="">— Select your car model —</option></select>
+        <div class="qty-row">
+          <div class="qty-ctrl">
+            <button id="qty-minus">−</button>
+            <span id="qty-val">1</span>
+            <button id="qty-plus">+</button>
+          </div>
+          <button class="btn btn-teal" style="flex:1" id="add-cart-btn">🛒 Add to Cart</button>
+        </div>
+        <div class="trust-row">
+          <span class="trust-item">✅ Fit Guarantee</span>
+          <span class="trust-item">🔒 Secure Payment</span>
+          <span class="trust-item">🔄 30-Day Returns</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:2rem 0 4rem">
+      <h2 style="font-family:'Poppins',sans-serif;font-size:1.2rem;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.5rem">You May Also Like</h2>
+      <div class="prod-grid" id="related-grid" style="grid-template-columns:repeat(3,1fr)"></div>
+    </div>
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name">TORQ<span>MAX</span></div>
+        <p class="footer-desc">Precision-engineered car floor mats for drivers who refuse to compromise.</p>
+        <div style="margin-top:1.2rem;display:flex;gap:1.2rem">
+          <a href="https://www.instagram.com/torqmaxautoaccessories/" target="_blank" aria-label="Instagram" style="color:#fff;opacity:.75;font-size:1.35rem;transition:opacity .2s,transform .2s;display:inline-block" onmouseover="this.style.opacity=1;this.style.transform='scale(1.15)'" onmouseout="this.style.opacity=.75;this.style.transform='scale(1)'">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+        </div>
+      </div>
+      <div class="footer-col"><h4>Quick Links</h4><a href="index.html">Home</a><a href="about.html">About Us</a><a href="contact.html">Contact</a></div>
+      <div class="footer-col"><h4>Products</h4><a href="shop.html">All Products</a><a href="shop.html?cat=all-weather">All-Weather</a><a href="shop.html?cat=luxury">Luxury</a><a href="shop.html?cat=boot">Boot Mats</a></div>
+      <div class="footer-col"><h4>Other</h4><a href="#">Returns Policy</a><a href="#">Track Order</a><a href="#">FAQs</a></div>
+    </div>
+    <div class="footer-bottom">© 2024 TorqMax. Made with precision in India 🇮🇳</div>
+  </div>
+</footer>
+<div class="toast" id="toast"></div>
+</body>
+</html>
