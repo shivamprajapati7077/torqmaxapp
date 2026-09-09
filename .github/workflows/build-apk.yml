@@ -25,10 +25,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android Platform 36
+      - name: Install Android Platform 36 and build-tools 35
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -37,11 +37,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
-      - name: Patch invalid AGP version in capacitor/android
-        run: |
-          find node_modules/@capacitor/android -name "*.gradle" -exec \
-            sed -i 's/com.android.tools.build:gradle:8\.13\.0/com.android.tools.build:gradle:8.5.1/g' {} +
 
       - name: Build web assets
         run: npm run build
@@ -59,7 +54,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --info 2>&1 | tail -100
 
       - name: Embed APK into Web Dist & Root
         run: |
