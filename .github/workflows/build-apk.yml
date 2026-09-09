@@ -55,16 +55,11 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tail -80
 
-      - name: Prepare APK
-        run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk TorqMax-Android.apk
-          ls -lh TorqMax-Android.apk
-
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TorqMax-Android-APK
-          path: TorqMax-Android.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
 
   deploy-web:
     needs: build-apk
@@ -92,8 +87,9 @@ jobs:
 
       - name: Copy APK to Dist
         run: |
-          find ./apk-output -type f -name "*.apk" -exec cp {} ./dist/TorqMax-Android.apk \;
-          ls -lh ./dist/TorqMax-Android.apk || true
+          cp ./apk-output/app-debug.apk ./dist/TorqMax-Android.apk || true
+          cp ./apk-output/app-debug.apk ./dist/app-debug.apk || true
+          ls -la ./dist
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
