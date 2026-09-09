@@ -2,11 +2,16 @@ import React from 'react';
 
 interface SplashScreenProps {
   fading: boolean;
+  onDismiss?: () => void;
 }
 
-export const SplashScreen: React.FC<SplashScreenProps> = ({ fading }) => {
+export const SplashScreen: React.FC<SplashScreenProps> = ({ fading, onDismiss }) => {
   return (
-    <div className={`splash ${fading ? 'fade-out' : ''}`}>
+    <div
+      className={`splash ${fading ? 'fade-out' : ''}`}
+      onClick={onDismiss}
+      style={{ cursor: 'pointer' }}
+    >
       {/* Glowing ring behind logo */}
       <div style={{
         position: 'relative',
@@ -21,7 +26,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ fading }) => {
           height: 130,
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(229,39,46,0.25) 0%, transparent 70%)',
-          animation: 'pulseGlow 2s ease-in-out infinite',
+          animation: 'pulseGlow 1.5s ease-in-out infinite',
         }} />
 
         {/* Real TorqMax logo with screen blend */}

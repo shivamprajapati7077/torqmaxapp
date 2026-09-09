@@ -15,15 +15,19 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
 
   useEffect(() => {
-    // Fade out splash after 2.2s
-    const fadeTimer = setTimeout(() => setSplashFading(true), 2200);
-    // Remove splash from DOM after fade
-    const removeTimer = setTimeout(() => setShowSplash(false), 2850);
+    // Fast 1.2s smooth splash transition
+    const fadeTimer = setTimeout(() => setSplashFading(true), 1200);
+    const removeTimer = setTimeout(() => setShowSplash(false), 1600);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
     };
   }, []);
+
+  const dismissSplash = () => {
+    setSplashFading(true);
+    setTimeout(() => setShowSplash(false), 300);
+  };
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -36,18 +40,14 @@ export default function App() {
 
   return (
     <>
-      {showSplash && <SplashScreen fading={splashFading} />}
+      {showSplash && <SplashScreen fading={splashFading} onDismiss={dismissSplash} />}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {renderScreen()}
       </div>
 
-      {!showSplash && (
-        <>
-          <InstallAppBanner />
-          <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
-        </>
-      )}
+      <InstallAppBanner />
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </>
   );
 }

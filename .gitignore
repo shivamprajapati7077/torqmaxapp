@@ -27,7 +27,7 @@ dist-ssr
 android/.gradle
 android/build
 android/app/build
-*.apk
+!*.apk
 *.aab
 
 # Local exports & demo recordings
