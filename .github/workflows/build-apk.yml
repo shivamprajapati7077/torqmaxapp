@@ -19,8 +19,8 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
+          distribution: 'zulu'
           java-version: '17'
-          distribution: 'temurin'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -45,62 +45,52 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets/public
           cp -r dist/* android/app/src/main/assets/public/
-          mkdir -p android/app/src/main/assets
-          echo "{}" > android/app/src/main/assets/capacitor.plugins.json
+          echo '{"appId":"com.torqmax.app","appName":"TorqMax","webDir":"dist"}' > android/app/src/main/assets/capacitor.config.json
+          echo '' > android/app/src/main/assets/capacitor.plugins.json
           echo "sdk.dir=${ANDROID_SDK_ROOT}" > android/local.properties
 
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tail -80
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Locate and Prepare APK
+      - name: Rename APK
         run: |
-          echo "Searching for built APKs..."
-          find android -type f -name "*.apk"
-          APK_FILE=$(find android -type f -name "*.apk" | head -n 1)
-          if [ -n "$APK_FILE" ]; then
-            echo "Found APK at $APK_FILE"
-            cp "$APK_FILE" TorqMax-Android.apk
-            ls -lh TorqMax-Android.apk
-          else
-            echo "Error: No APK file found in android directory!"
-            exit 1
-          fi
+          cp android/app/build/outputs/apk/debug/app-debug.apk TorqMax-Android.apk
+          ls -lh TorqMax-Android.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TorqMax-Android-APK
+          name: TorqMax-App-Debug-APK
           path: TorqMax-Android.apk
 
-      - name: Publish APK as GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: success()
-        with:
-          tag_name: android-latest
-          name: TorqMax Android App — Latest Build
-          token: ${{ secrets.GITHUB_TOKEN }}
-          body: |
-            ## 📱 Download TorqMax for Android
+      - name: Publish APK to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete android-latest --yes || true
+          git tag -d android-latest || true
+          git push --delete origin android-latest || true
+          gh release create android-latest TorqMax-Android.apk \
+            --title "TorqMax Android App — Latest Build" \
+            --notes "## 📱 Download TorqMax for Android
 
-            Direct download: **[TorqMax-Android.apk](https://github.com/shivamprajapati7077/torqmaxapp/releases/download/android-latest/TorqMax-Android.apk)**
+          Direct download: **[TorqMax-Android.apk](https://github.com/shivamprajapati7077/torqmaxapp/releases/download/android-latest/TorqMax-Android.apk)**
 
-            ### How to install:
-            1. Download the APK file.
-            2. On your Android phone: go to **Settings → Security → Install unknown apps** and enable permission for your browser.
-            3. Open the downloaded file and tap **Install**.
+          ### How to install:
+          1. Download the APK file.
+          2. On your Android phone: go to **Settings → Security → Install unknown apps** and enable permission for your browser.
+          3. Open the downloaded file and tap **Install**.
 
-            ### App Features:
-            - 103+ car models (Hatchback, Sedan, SUV, Luxury)
-            - Checkmate & Exotic mat styles
-            - Black & Beige colour options
-            - Real-time 3D mat customization preview
-            - 1-tap WhatsApp order dispatch
-            - Works offline
-          files: TorqMax-Android.apk
-          make_latest: true
+          ### App Features:
+          - 103+ car models (Hatchback, Sedan, SUV, Luxury)
+          - Checkmate & Exotic mat styles
+          - Black & Beige colour options
+          - Real-time 3D mat customization preview
+          - 1-tap WhatsApp order dispatch
+          - Works offline"
 
   deploy-web:
     needs: build-apk
@@ -123,7 +113,7 @@ jobs:
       - name: Download Built APK
         uses: actions/download-artifact@v4
         with:
-          name: TorqMax-Android-APK
+          name: TorqMax-App-Debug-APK
           path: ./dist
 
       - name: Deploy to GitHub Pages
