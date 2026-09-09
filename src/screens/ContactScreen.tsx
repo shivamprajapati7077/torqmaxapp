@@ -5,16 +5,51 @@ type SubjectOption = 'Product Enquiry' | 'Fitment Query' | 'Order Status' | 'Par
 
 export const ContactScreen: React.FC = () => {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState<SubjectOption>('Product Enquiry');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const subjects: SubjectOption[] = ['Product Enquiry', 'Fitment Query', 'Order Status', 'Partnership', 'Other'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          access_key: 'dda630fd-c97b-48ab-8afb-b449fb5a3d49',
+          from_name: 'TorqMax App Contact Form',
+          subject: `[TorqMax App] ${subject} — from ${name}`,
+          name,
+          email: email || undefined,
+          phone,
+          topic: subject,
+          message,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSubmitted(true);
+      } else {
+        setError(data.message || 'Failed to send. Please reach us directly via WhatsApp or email.');
+      }
+    } catch {
+      setError('Network error. Please check your connection or contact us via WhatsApp.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -41,7 +76,7 @@ export const ContactScreen: React.FC = () => {
           <div className="section-eyebrow">Get in Touch</div>
           <div className="section-title">Contact TorqMax</div>
           <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.6 }}>
-            Have a car model query, bulk order, or fitting appointment? We reply within 24 hours.
+            Have a car model query, bulk order, or custom fitment request? We reply within 24 hours.
           </p>
         </div>
 
@@ -104,13 +139,13 @@ export const ContactScreen: React.FC = () => {
               width: 42,
               height: 42,
               borderRadius: 12,
-              background: 'var(--red-muted)',
-              border: '1px solid rgba(229,39,46,0.3)',
+              background: 'var(--amber-muted)',
+              border: '1px solid rgba(245,158,11,0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E5272E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
               </svg>
             </div>
@@ -168,7 +203,7 @@ export const ContactScreen: React.FC = () => {
 
           {/* Email */}
           <a
-            href="mailto:info@torqmaxautoaccessories.com"
+            href="mailto:torqmaxautoaccessories@gmail.com"
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -185,20 +220,20 @@ export const ContactScreen: React.FC = () => {
               width: 42,
               height: 42,
               borderRadius: 12,
-              background: 'rgba(59,130,246,0.12)',
-              border: '1px solid rgba(59,130,246,0.3)',
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                 <polyline points="22,6 12,13 2,6"/>
               </svg>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-brand)', fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>Email</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>info@torqmaxautoaccessories.com</div>
+            <div style={{ textAlign: 'center', maxWidth: '100%', overflow: 'hidden' }}>
+              <div style={{ fontFamily: 'var(--font-brand)', fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>Email Us</div>
+              <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', marginTop: 2, wordBreak: 'break-all', lineHeight: 1.2 }}>torqmaxautoaccessories@gmail.com</div>
             </div>
           </a>
         </div>
@@ -211,20 +246,26 @@ export const ContactScreen: React.FC = () => {
         {/* ── CONTACT FORM ─────────────────────────────── */}
         <div style={{ padding: '0 20px 20px' }}>
           <div className="section-eyebrow">Send a Message</div>
-          <div className="section-title" style={{ marginBottom: 18 }}>We'll Reply Within 24h</div>
+          <div className="section-title" style={{ marginBottom: 6 }}>We'll Reply Within 24h</div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 18, lineHeight: 1.5 }}>
+            Submissions go directly to <span style={{ color: 'var(--amber)', fontWeight: 600 }}>torqmaxautoaccessories@gmail.com</span>
+          </p>
 
           {submitted ? (
             <div className="card" style={{ textAlign: 'center', padding: '32px 20px' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>✅</div>
               <div style={{ fontFamily: 'var(--font-brand)', fontSize: '1.2rem', fontWeight: 700, color: '#fff', marginBottom: 8 }}>
-                Message Sent!
+                Message Sent Successfully!
               </div>
               <div style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>
-                Thanks, <strong style={{ color: '#fff' }}>{name || 'there'}</strong>! Our team will get back to you within 24 hours.
+                Thanks, <strong style={{ color: '#fff' }}>{name || 'there'}</strong>! Our team received your message at <strong style={{ color: 'var(--amber)' }}>torqmaxautoaccessories@gmail.com</strong> and will get back to you within 24 hours.
               </div>
-              <button className="btn-red" style={{ width: '100%', fontSize: '0.88rem' }}
-                onClick={() => { setSubmitted(false); setName(''); setPhone(''); setMessage(''); }}>
-                Send Another
+              <button
+                className="btn-primary"
+                style={{ width: '100%', fontSize: '0.88rem' }}
+                onClick={() => { setSubmitted(false); setName(''); setEmail(''); setPhone(''); setMessage(''); }}
+              >
+                Send Another Message
               </button>
             </div>
           ) : (
@@ -232,7 +273,7 @@ export const ContactScreen: React.FC = () => {
               {/* Name */}
               <div>
                 <label style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                  Your Name
+                  Your Name *
                 </label>
                 <input
                   type="text"
@@ -244,10 +285,24 @@ export const ContactScreen: React.FC = () => {
                 />
               </div>
 
+              {/* Email */}
+              <div>
+                <label style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                  Your Email <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none' }}>(Optional — for email reply)</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="e.g. rahul@example.com"
+                  style={inputStyle}
+                />
+              </div>
+
               {/* Phone */}
               <div>
                 <label style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                  Phone / WhatsApp
+                  Phone / WhatsApp *
                 </label>
                 <input
                   type="tel"
@@ -275,9 +330,9 @@ export const ContactScreen: React.FC = () => {
                         borderRadius: 20,
                         fontSize: '0.78rem',
                         fontWeight: 600,
-                        border: `1.5px solid ${subject === s ? 'var(--red)' : 'var(--border)'}`,
-                        background: subject === s ? 'var(--red-muted)' : 'transparent',
-                        color: subject === s ? 'var(--red)' : 'var(--text-secondary)',
+                        border: `1.5px solid ${subject === s ? 'var(--amber)' : 'var(--border)'}`,
+                        background: subject === s ? 'var(--amber-muted)' : 'transparent',
+                        color: subject === s ? 'var(--amber)' : 'var(--text-secondary)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                       }}
@@ -291,7 +346,7 @@ export const ContactScreen: React.FC = () => {
               {/* Message */}
               <div>
                 <label style={{ fontSize: '0.73rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                  Message
+                  Message *
                 </label>
                 <textarea
                   rows={4}
@@ -303,8 +358,32 @@ export const ContactScreen: React.FC = () => {
                 />
               </div>
 
-              <button type="submit" className="btn-red" style={{ width: '100%', marginTop: 4 }}>
-                Send Message →
+              {error && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.12)',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  fontSize: '0.8rem',
+                  color: '#EF4444',
+                  textAlign: 'center',
+                }}>
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={isLoading}
+                style={{
+                  width: '100%',
+                  marginTop: 4,
+                  opacity: isLoading ? 0.7 : 1,
+                  cursor: isLoading ? 'wait' : 'pointer',
+                }}
+              >
+                {isLoading ? '⏳ Sending to TorqMax...' : 'Send Message →'}
               </button>
             </form>
           )}
@@ -320,8 +399,11 @@ export const ContactScreen: React.FC = () => {
               📍 Road no.7, Plot 745/746<br />
               Sachin GIDC, Surat, Gujarat — 394230
             </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 8 }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 8 }}>
               🕐 Mon – Sat: 9:00 AM – 6:00 PM IST
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 6 }}>
+              ✉️ torqmaxautoaccessories@gmail.com
             </div>
           </div>
         </div>

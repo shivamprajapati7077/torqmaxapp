@@ -104,21 +104,21 @@ Please share dispatch & availability details!`;
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: 'var(--red-muted)',
-              border: '1px solid rgba(229,39,46,0.3)',
+              background: 'var(--amber-muted)',
+              border: '1px solid rgba(245,158,11,0.25)',
               borderRadius: 20,
               padding: '4px 12px',
               marginBottom: 10,
             }}
           >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--red)' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--amber)' }} />
             <span
               style={{
                 fontSize: '0.7rem',
                 fontWeight: 700,
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
-                color: 'var(--red)',
+                color: 'var(--amber)',
               }}
             >
               Custom Mat Studio · {VEHICLE_MODELS.length} Vehicle Models
@@ -126,7 +126,7 @@ Please share dispatch & availability details!`;
           </div>
 
           <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#fff', lineHeight: 1.15, marginBottom: 6 }}>
-            Bespoke Floor <span style={{ color: 'var(--red)' }}>Mats</span>
+            Bespoke Floor <span style={{ color: 'var(--amber)' }}>Mats</span>
           </h1>
           <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Laser-measured, dual-style precision car mats tailored specifically for your car's floor contours.
@@ -145,13 +145,13 @@ Please share dispatch & availability details!`;
                     width: 22,
                     height: 22,
                     borderRadius: '50%',
-                    background: 'var(--red)',
-                    color: '#fff',
+                    background: 'var(--amber)',
+                    color: '#000',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '0.72rem',
-                    fontWeight: 700,
+                    fontWeight: 800,
                   }}
                 >
                   1
@@ -175,9 +175,9 @@ Please share dispatch & availability details!`;
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   whiteSpace: 'nowrap',
-                  border: selectedCategory === 'all' ? '1.5px solid var(--red)' : '1px solid var(--border)',
-                  background: selectedCategory === 'all' ? 'var(--red-muted)' : 'var(--surface)',
-                  color: selectedCategory === 'all' ? '#fff' : 'var(--text-secondary)',
+                  border: selectedCategory === 'all' ? '1.5px solid var(--amber)' : '1px solid var(--border)',
+                  background: selectedCategory === 'all' ? 'var(--amber-muted)' : 'var(--surface)',
+                  color: selectedCategory === 'all' ? 'var(--amber)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
@@ -198,9 +198,9 @@ Please share dispatch & availability details!`;
                       fontSize: '0.75rem',
                       fontWeight: 600,
                       whiteSpace: 'nowrap',
-                      border: isAct ? '1.5px solid var(--red)' : '1px solid var(--border)',
-                      background: isAct ? 'var(--red-muted)' : 'var(--surface)',
-                      color: isAct ? '#fff' : 'var(--text-secondary)',
+                      border: isAct ? '1.5px solid var(--amber)' : '1px solid var(--border)',
+                      background: isAct ? 'var(--amber-muted)' : 'var(--surface)',
+                      color: isAct ? 'var(--amber)' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
                     }}
@@ -295,7 +295,7 @@ Please share dispatch & availability details!`;
                   >
                     <span>{filteredModels.length} models matching</span>
                     <span
-                      style={{ color: 'var(--red)', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ color: 'var(--amber)', cursor: 'pointer', fontWeight: 600 }}
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       Close ✕
@@ -317,7 +317,7 @@ Please share dispatch & availability details!`;
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           borderBottom: '1px solid rgba(255,255,255,0.04)',
-                          background: isSelected ? 'rgba(229,39,46,0.18)' : 'transparent',
+                          background: isSelected ? 'rgba(245,158,11,0.15)' : 'transparent',
                           cursor: 'pointer',
                           transition: 'background 0.15s ease',
                         }}
@@ -331,7 +331,7 @@ Please share dispatch & availability details!`;
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '0.72rem', color: isSelected ? 'var(--red)' : 'var(--text-muted)', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.72rem', color: isSelected ? 'var(--amber)' : 'var(--text-muted)', fontWeight: 600 }}>
                             {isSelected ? 'Selected ✓' : 'Select →'}
                           </span>
                         </div>
@@ -407,8 +407,8 @@ Please share dispatch & availability details!`;
                     style={{
                       fontSize: '0.66rem',
                       fontWeight: 700,
-                      background: 'var(--red)',
-                      color: '#fff',
+                      background: 'var(--amber)',
+                      color: '#000',
                       padding: '2px 8px',
                       borderRadius: 6,
                       textTransform: 'uppercase',
@@ -459,13 +459,13 @@ Please share dispatch & availability details!`;
                   width: 22,
                   height: 22,
                   borderRadius: '50%',
-                  background: 'var(--red)',
-                  color: '#fff',
+                  background: 'var(--amber)',
+                  color: '#000',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.72rem',
-                  fontWeight: 700,
+                  fontWeight: 800,
                 }}
               >
                 2
@@ -481,14 +481,14 @@ Please share dispatch & availability details!`;
                 id="style-card-checkmate"
                 onClick={() => handleStyleSelect('checkmate')}
                 style={{
-                  background: selectedStyleId === 'checkmate' ? 'rgba(229,39,46,0.12)' : 'var(--surface)',
-                  border: selectedStyleId === 'checkmate' ? '2px solid var(--red)' : '1px solid var(--border)',
+                  background: selectedStyleId === 'checkmate' ? 'rgba(245,158,11,0.12)' : 'var(--surface)',
+                  border: selectedStyleId === 'checkmate' ? '2px solid var(--amber)' : '1px solid var(--border)',
                   borderRadius: 14,
                   padding: '14px',
                   cursor: 'pointer',
                   position: 'relative',
                   transition: 'all 0.2s ease',
-                  boxShadow: selectedStyleId === 'checkmate' ? '0 4px 20px rgba(229,39,46,0.25)' : 'none',
+                  boxShadow: selectedStyleId === 'checkmate' ? '0 4px 20px rgba(245,158,11,0.2)' : 'none',
                 }}
               >
                 {selectedStyleId === 'checkmate' && (
@@ -500,8 +500,8 @@ Please share dispatch & availability details!`;
                       width: 18,
                       height: 18,
                       borderRadius: '50%',
-                      background: 'var(--red)',
-                      color: '#fff',
+                      background: 'var(--amber)',
+                      color: '#000',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -531,7 +531,7 @@ Please share dispatch & availability details!`;
                   <svg width="100%" height="100%" style={{ opacity: 0.75 }}>
                     <defs>
                       <pattern id="grid-diamond" width="16" height="16" patternUnits="userSpaceOnUse">
-                        <path d="M8 0 L16 8 L8 16 L0 8 Z" fill="none" stroke="#E5272E" strokeWidth="0.9" />
+                        <path d="M8 0 L16 8 L8 16 L0 8 Z" fill="none" stroke="#F59E0B" strokeWidth="0.9" />
                       </pattern>
                     </defs>
                     <rect width="100%" height="100%" fill="url(#grid-diamond)" />
@@ -544,7 +544,7 @@ Please share dispatch & availability details!`;
                       background: 'rgba(0,0,0,0.7)',
                       padding: '1px 6px',
                       borderRadius: 4,
-                      color: '#E5272E',
+                      color: '#F59E0B',
                       fontWeight: 700,
                     }}
                   >
@@ -555,7 +555,7 @@ Please share dispatch & availability details!`;
                 <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', fontFamily: 'var(--font-brand)' }}>
                   CHECKMATE
                 </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--red)', fontWeight: 600, marginTop: 2 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--amber)', fontWeight: 600, marginTop: 2 }}>
                   Sport Precision
                 </div>
                 <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.3 }}>
@@ -568,14 +568,14 @@ Please share dispatch & availability details!`;
                 id="style-card-exotic"
                 onClick={() => handleStyleSelect('exotic')}
                 style={{
-                  background: selectedStyleId === 'exotic' ? 'rgba(229,39,46,0.12)' : 'var(--surface)',
-                  border: selectedStyleId === 'exotic' ? '2px solid var(--red)' : '1px solid var(--border)',
+                  background: selectedStyleId === 'exotic' ? 'rgba(245,158,11,0.12)' : 'var(--surface)',
+                  border: selectedStyleId === 'exotic' ? '2px solid var(--amber)' : '1px solid var(--border)',
                   borderRadius: 14,
                   padding: '14px',
                   cursor: 'pointer',
                   position: 'relative',
                   transition: 'all 0.2s ease',
-                  boxShadow: selectedStyleId === 'exotic' ? '0 4px 20px rgba(229,39,46,0.25)' : 'none',
+                  boxShadow: selectedStyleId === 'exotic' ? '0 4px 20px rgba(245,158,11,0.2)' : 'none',
                 }}
               >
                 {selectedStyleId === 'exotic' && (
@@ -587,8 +587,8 @@ Please share dispatch & availability details!`;
                       width: 18,
                       height: 18,
                       borderRadius: '50%',
-                      background: 'var(--red)',
-                      color: '#fff',
+                      background: 'var(--amber)',
+                      color: '#000',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -664,13 +664,13 @@ Please share dispatch & availability details!`;
                     width: 22,
                     height: 22,
                     borderRadius: '50%',
-                    background: 'var(--red)',
-                    color: '#fff',
+                    background: 'var(--amber)',
+                    color: '#000',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '0.72rem',
-                    fontWeight: 700,
+                    fontWeight: 800,
                   }}
                 >
                   3
@@ -679,7 +679,7 @@ Please share dispatch & availability details!`;
                   CHOOSE {currentStyle.name.toUpperCase()} COLOUR
                 </span>
               </div>
-              <span style={{ fontSize: '0.74rem', color: 'var(--red)', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--amber)', fontWeight: 600 }}>
                 2 Premium Shades
               </span>
             </div>
@@ -693,8 +693,8 @@ Please share dispatch & availability details!`;
                     id={`color-card-${col.name.toLowerCase()}`}
                     onClick={() => setSelectedColorId(col.id)}
                     style={{
-                      background: isSelected ? 'rgba(229,39,46,0.12)' : 'var(--surface)',
-                      border: isSelected ? '1.8px solid var(--red)' : '1px solid var(--border)',
+                      background: isSelected ? 'rgba(245,158,11,0.12)' : 'var(--surface)',
+                      border: isSelected ? '1.8px solid var(--amber)' : '1px solid var(--border)',
                       borderRadius: 14,
                       padding: '12px 14px',
                       display: 'flex',
@@ -744,7 +744,7 @@ Please share dispatch & availability details!`;
                         width: 18,
                         height: 18,
                         borderRadius: '50%',
-                        border: isSelected ? '5px solid var(--red)' : '2px solid var(--text-muted)',
+                        border: isSelected ? '5px solid var(--amber)' : '2px solid var(--text-muted)',
                         background: isSelected ? '#fff' : 'transparent',
                         flexShrink: 0,
                       }}
@@ -772,7 +772,7 @@ Please share dispatch & availability details!`;
               {/* Studio Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--red)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--amber)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
                     Live Mat Preview
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff' }}>
@@ -793,8 +793,8 @@ Please share dispatch & availability details!`;
                         textTransform: 'capitalize',
                         borderRadius: 14,
                         border: 'none',
-                        background: viewAngle === v ? 'var(--red)' : 'transparent',
-                        color: viewAngle === v ? '#fff' : 'var(--text-muted)',
+                        background: viewAngle === v ? 'var(--amber)' : 'transparent',
+                        color: viewAngle === v ? '#000' : 'var(--text-muted)',
                         cursor: 'pointer',
                       }}
                     >
@@ -1019,11 +1019,11 @@ Please share dispatch & availability details!`;
                     left: 10,
                     background: 'rgba(0,0,0,0.7)',
                     backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(229,39,46,0.3)',
+                    border: '1px solid rgba(245,158,11,0.3)',
                     padding: '4px 10px',
                     borderRadius: 8,
                     fontSize: '0.62rem',
-                    color: '#E5272E',
+                    color: 'var(--amber)',
                     fontWeight: 700,
                     letterSpacing: '0.05em',
                   }}
@@ -1055,13 +1055,13 @@ Please share dispatch & availability details!`;
                   position: 'absolute',
                   bottom: 10,
                   left: 10,
-                  background: 'rgba(229,39,46,0.15)',
-                  border: '1px solid rgba(229,39,46,0.3)',
+                  background: 'rgba(245,158,11,0.15)',
+                  border: '1px solid rgba(245,158,11,0.3)',
                   padding: '3px 8px',
                   borderRadius: 6,
                   fontSize: '0.58rem',
                   fontWeight: 700,
-                  color: '#E5272E',
+                  color: 'var(--amber)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                 }}>
@@ -1093,7 +1093,7 @@ Please share dispatch & availability details!`;
                 </div>
                 <div style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '8px 4px' }}>
                   <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>WARRANTY</div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--red)', marginTop: 2 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--amber)', marginTop: 2 }}>
                     1 Year Direct
                   </div>
                 </div>
@@ -1106,8 +1106,8 @@ Please share dispatch & availability details!`;
               ══════════════════════════════════════════════════ */}
           <section
             style={{
-              background: 'linear-gradient(135deg, #1C1213 0%, #15161A 100%)',
-              border: '1.5px solid rgba(229,39,46,0.45)',
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(18,19,26,0.95) 100%)',
+              border: '1.5px solid rgba(245,158,11,0.3)',
               borderRadius: 16,
               padding: '18px',
             }}

@@ -112,14 +112,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveTab }) => {
             background: 'linear-gradient(to right, rgba(13,13,13,0.7) 0%, transparent 60%)',
           }} />
 
-          {/* Red accent line left */}
+          {/* Amber accent line left */}
           <div style={{
             position: 'absolute',
             left: 0,
             top: 0,
             bottom: 0,
             width: 3,
-            background: 'var(--red)',
+            background: 'linear-gradient(to bottom, var(--amber), transparent)',
           }} />
 
           {/* Content */}
@@ -134,7 +134,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveTab }) => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: 'rgba(229,39,46,0.9)',
+              background: 'rgba(245,158,11,0.9)',
               borderRadius: 20,
               padding: '3px 10px',
               marginBottom: 8,
@@ -162,7 +162,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveTab }) => {
             </div>
             <div style={{
               fontSize: '0.85rem',
-              color: 'var(--red)',
+              color: 'var(--amber)',
               fontWeight: 600,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
@@ -181,7 +181,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveTab }) => {
                     width: i === slide ? 20 : 6,
                     height: 6,
                     borderRadius: 3,
-                    background: i === slide ? 'var(--red)' : 'rgba(255,255,255,0.35)',
+                    background: i === slide ? 'var(--amber)' : 'rgba(255,255,255,0.35)',
                     border: 'none',
                     cursor: 'pointer',
                     transition: 'width 0.3s ease, background 0.3s ease',
@@ -199,19 +199,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveTab }) => {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
-            background: 'var(--red-muted)',
-            border: '1px solid rgba(229,39,46,0.3)',
+            background: 'var(--amber-muted)',
+            border: '1px solid rgba(245,158,11,0.25)',
             borderRadius: 20,
             padding: '6px 14px',
             marginBottom: 20,
           }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--red)' }} />
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--amber)' }} />
             <span style={{
               fontSize: '0.73rem',
               fontWeight: 600,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              color: 'var(--red)',
+              color: 'var(--amber)',
             }}>OEM-Level Fit · 102 Car Models</span>
           </div>
 
@@ -225,7 +225,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveTab }) => {
             marginBottom: 10,
           }}>
             India's Precision<br />
-            <span style={{ color: 'var(--red)' }}>Custom Car Mats</span>
+            <span style={{ color: 'var(--amber)' }}>Custom Car Mats</span>
           </h1>
           <p style={{
             fontSize: '0.87rem',
@@ -317,7 +317,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveTab }) => {
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(135deg, rgba(229,39,46,0.85) 0%, rgba(13,13,13,0.6) 100%)',
+            background: 'linear-gradient(135deg, rgba(245,158,11,0.85) 0%, rgba(10,10,15,0.7) 100%)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',

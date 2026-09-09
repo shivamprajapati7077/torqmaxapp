@@ -1,29 +1,36 @@
 @import "tailwindcss";
 
 /* =============================================
-   TORQMAX APP — DESIGN SYSTEM
-   Brand: Deep Black + Firebrick Red
+   TORQMAX APP — OBSIDIAN EMBER DESIGN SYSTEM
+   Brand: Deep Black + Warm Amber/Gold + Red Accent
    ============================================= */
 
 :root {
-  /* Brand Colors */
+  /* Primary Accent — Warm Amber/Gold */
+  --amber: #F59E0B;
+  --amber-dark: #D97706;
+  --amber-glow: rgba(245, 158, 11, 0.3);
+  --amber-muted: rgba(245, 158, 11, 0.1);
+
+  /* Brand Red — Reserved for logo & special touches */
   --red: #E5272E;
   --red-dark: #B81F25;
   --red-glow: rgba(229, 39, 46, 0.35);
-  --red-muted: rgba(229, 39, 46, 0.12);
+  --red-muted: rgba(229, 39, 46, 0.1);
 
-  /* Surface Colors */
-  --bg: #0D0D0D;
-  --surface: #161616;
-  --surface-2: #1F1F1F;
-  --surface-3: #282828;
-  --border: rgba(255, 255, 255, 0.08);
+  /* Surface Colors — Warmer blacks */
+  --bg: #0A0A0F;
+  --surface: #12131A;
+  --surface-2: #1A1B24;
+  --surface-3: #24252F;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-warm: rgba(245, 158, 11, 0.15);
 
   /* Text Colors */
   --text-white: #FFFFFF;
-  --text-primary: #F2F2F2;
-  --text-secondary: #A0A0A0;
-  --text-muted: #636363;
+  --text-primary: #F0F0F5;
+  --text-secondary: #9CA3AF;
+  --text-muted: #5B5E6B;
 
   /* Fonts */
   --font-brand: 'Rajdhani', sans-serif;
@@ -55,8 +62,8 @@
 }
 
 input:focus, textarea:focus {
-  border-color: var(--red) !important;
-  box-shadow: 0 0 0 1px var(--red) !important;
+  border-color: var(--amber) !important;
+  box-shadow: 0 0 0 1px var(--amber), 0 0 12px rgba(245,158,11,0.15) !important;
 }
 
 html {
@@ -111,34 +118,63 @@ h1, h2, h3, h4 {
   line-height: 1.15;
 }
 
-/* ─── Brand Red Utilities ───────────────────── */
+/* ─── Accent Utilities ─────────────────────── */
 .text-red { color: var(--red); }
+.text-amber { color: var(--amber); }
 .bg-red { background: var(--red); }
 
-.btn-red {
+/* Primary CTA — Amber gradient */
+.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--red);
-  color: #fff;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #000;
   font-family: var(--font-brand);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 14px 28px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.1s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 20px var(--red-glow);
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 24px var(--amber-glow);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 12px var(--amber-glow);
+}
+
+/* Legacy red button — still used in some places */
+.btn-red {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #000;
+  font-family: var(--font-brand);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 28px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 24px var(--amber-glow);
 }
 
 .btn-red:active {
   transform: scale(0.97);
-  box-shadow: 0 2px 10px var(--red-glow);
+  box-shadow: 0 2px 12px var(--amber-glow);
 }
 
 .btn-outline {
@@ -147,37 +183,44 @@ h1, h2, h3, h4 {
   justify-content: center;
   gap: 8px;
   background: transparent;
-  color: var(--red);
+  color: var(--amber);
   font-family: var(--font-brand);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 13px 28px;
-  border-radius: 12px;
-  border: 1.5px solid var(--red);
+  border-radius: 14px;
+  border: 1.5px solid var(--amber);
   cursor: pointer;
-  transition: transform 0.1s ease, background 0.15s ease;
+  transition: transform 0.12s ease, background 0.15s ease;
 }
 
 .btn-outline:active {
   transform: scale(0.97);
-  background: var(--red-muted);
+  background: var(--amber-muted);
 }
 
-/* ─── Cards ─────────────────────────────────── */
+/* ─── Cards — Glassmorphism ─────────────────── */
 .card {
-  background: var(--surface);
+  background: rgba(18, 19, 26, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 20px;
+  transition: border-color 0.2s ease;
 }
 
-/* ─── Red glow separator ─────────────────────── */
+.card:hover {
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* ─── Warm glow separator ─────────────────────── */
 .red-line {
   width: 40px;
   height: 3px;
-  background: var(--red);
+  background: linear-gradient(90deg, var(--amber), var(--amber-dark));
   border-radius: 2px;
 }
 
@@ -185,16 +228,22 @@ h1, h2, h3, h4 {
 .stat-badge {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 14px 16px;
   text-align: center;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.stat-badge:hover {
+  border-color: var(--border-warm);
+  transform: translateY(-1px);
 }
 
 .stat-number {
   font-family: var(--font-brand);
   font-size: 1.8rem;
   font-weight: 700;
-  color: var(--red);
+  color: var(--amber);
   line-height: 1;
 }
 
@@ -215,8 +264,10 @@ h1, h2, h3, h4 {
   width: 100%;
   max-width: 480px;
   height: calc(var(--nav-h) + var(--sab));
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
   display: flex;
   align-items: flex-start;
   padding-top: 8px;
@@ -241,22 +292,35 @@ h1, h2, h3, h4 {
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  transition: color 0.18s ease;
+  transition: color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
 }
 
 .nav-btn.active {
-  color: var(--red);
+  color: var(--amber);
+}
+
+/* Active tab dot indicator */
+.nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber-glow);
 }
 
 .nav-btn svg {
   width: 22px;
   height: 22px;
-  transition: transform 0.1s ease;
+  transition: transform 0.15s ease;
 }
 
 .nav-btn.active svg {
-  transform: scale(1.1);
+  transform: scale(1.12);
 }
 
 /* ─── Splash Screen ─────────────────────────── */
@@ -328,7 +392,7 @@ h1, h2, h3, h4 {
 
 .splash-progress {
   height: 100%;
-  background: var(--red);
+  background: linear-gradient(90deg, var(--amber), var(--red));
   border-radius: 4px;
   animation: loadBar 1.8s ease forwards;
 }
@@ -353,6 +417,16 @@ h1, h2, h3, h4 {
   50% { transform: rotateX(30deg) rotateZ(-1deg) translateY(-4px); }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ─── Status Bar Safe Area Spacer ────────────── */
 .status-spacer {
   height: calc(var(--sat) + 12px);
@@ -365,7 +439,7 @@ h1, h2, h3, h4 {
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--red);
+  color: var(--amber);
   margin-bottom: 6px;
 }
 
@@ -392,12 +466,12 @@ h1, h2, h3, h4 {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: var(--red-muted);
-  border: 1px solid rgba(229, 39, 46, 0.25);
+  background: var(--amber-muted);
+  border: 1px solid rgba(245, 158, 11, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--red);
+  color: var(--amber);
   flex-shrink: 0;
 }
 

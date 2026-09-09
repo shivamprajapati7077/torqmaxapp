@@ -39,15 +39,15 @@ export const AboutScreen: React.FC = () => {
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(to bottom, rgba(13,13,13,0.3) 0%, rgba(13,13,13,0.95) 100%)',
+            background: 'linear-gradient(to bottom, rgba(10,10,15,0.3) 0%, rgba(10,10,15,0.95) 100%)',
           }} />
-          <div style={{ position: 'absolute', left: 3, top: 0, bottom: 0, width: 3, background: 'var(--red)' }} />
+          <div style={{ position: 'absolute', left: 3, top: 0, bottom: 0, width: 3, background: 'linear-gradient(to bottom, var(--amber), transparent)' }} />
           <div style={{ position: 'absolute', bottom: 20, left: 20 }}>
             <div style={{
               fontSize: '0.7rem',
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
-              color: 'var(--red)',
+              color: 'var(--amber)',
               fontWeight: 600,
               marginBottom: 6,
             }}>Our Story</div>
@@ -105,8 +105,8 @@ export const AboutScreen: React.FC = () => {
                   width: 46,
                   height: 46,
                   borderRadius: 13,
-                  background: 'var(--red-muted)',
-                  border: '1px solid rgba(229,39,46,0.25)',
+                  background: 'var(--amber-muted)',
+                  border: '1px solid rgba(245,158,11,0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -141,13 +141,13 @@ export const AboutScreen: React.FC = () => {
                     width: 22,
                     height: 22,
                     borderRadius: 7,
-                    background: 'var(--red)',
+                    background: 'var(--amber)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '0.62rem',
                     fontWeight: 700,
-                    color: '#fff',
+                    color: '#000',
                     flexShrink: 0,
                   }}>
                     {i + 1}
