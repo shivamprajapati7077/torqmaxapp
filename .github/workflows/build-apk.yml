@@ -25,7 +25,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android Platform
+      - name: Install Android Platform 35
         run: |
           yes | sdkmanager --licenses || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
@@ -41,17 +41,19 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Prepare Android assets
+      - name: Prepare Android assets & Gradle properties
         run: |
           mkdir -p android/app/src/main/assets/public
           cp -r dist/* android/app/src/main/assets/public/
           echo '{"appId":"com.torqmax.app","appName":"TorqMax","webDir":"dist"}' > android/app/src/main/assets/capacitor.config.json
+          echo '' > android/app/src/main/assets/capacitor.plugins.json
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > android/local.properties
 
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tail -80
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
