@@ -4,15 +4,10 @@ import './index.css'
 import App from './App'
 
 // Register Service Worker for PWA installability & offline support
-if (
-  'serviceWorker' in navigator &&
-  (window.location.protocol === 'https:' ||
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1')
-) {
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js')
+      .register('./sw.js')
       .then((reg) => {
         console.log('TorqMax PWA Service Worker registered:', reg.scope);
       })

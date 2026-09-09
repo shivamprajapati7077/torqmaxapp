@@ -1,41 +1,58 @@
 {
-  "id": "/",
+  "id": "com.torqmax.app",
   "name": "TorqMax Auto Accessories",
   "short_name": "TorqMax",
   "description": "Precision bespoke car floor mats custom-fit for 100+ car models in India.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#0D0D0D",
   "theme_color": "#0D0D0D",
   "lang": "en-IN",
+  "dir": "ltr",
   "categories": ["shopping", "automotive", "business"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "TorqMax Mobile App Home"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "TorqMax Custom Mat Configurator"
     }
   ],
   "shortcuts": [
@@ -43,15 +60,15 @@
       "name": "Custom Floor Mats",
       "short_name": "Mats",
       "description": "Configure bespoke floor mats for your vehicle",
-      "url": "/?tab=products",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "url": "./index.html?tab=products",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Contact TorqMax",
       "short_name": "Contact",
       "description": "WhatsApp dispatch & support",
-      "url": "/?tab=contact",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "url": "./index.html?tab=contact",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }
