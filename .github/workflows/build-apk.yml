@@ -55,42 +55,24 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Rename APK
+      - name: Copy APK to Root
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk TorqMax-Android.apk
-          ls -lh TorqMax-Android.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TorqMax-App-Debug-APK
+          name: TorqMax-Android-APK
           path: TorqMax-Android.apk
 
-      - name: Publish APK to GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release delete android-latest --yes || true
-          git tag -d android-latest || true
-          git push --delete origin android-latest || true
-          gh release create android-latest TorqMax-Android.apk \
-            --title "TorqMax Android App — Latest Build" \
-            --notes "## 📱 Download TorqMax for Android
-
-          Direct download: **[TorqMax-Android.apk](https://github.com/shivamprajapati7077/torqmaxapp/releases/download/android-latest/TorqMax-Android.apk)**
-
-          ### How to install:
-          1. Download the APK file.
-          2. On your Android phone: go to **Settings → Security → Install unknown apps** and enable permission for your browser.
-          3. Open the downloaded file and tap **Install**.
-
-          ### App Features:
-          - 103+ car models (Hatchback, Sedan, SUV, Luxury)
-          - Checkmate & Exotic mat styles
-          - Black & Beige colour options
-          - Real-time 3D mat customization preview
-          - 1-tap WhatsApp order dispatch
-          - Works offline"
+      - name: Release APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "TorqMax Android App (Official APK)"
+          draft: false
+          prerelease: false
+          files: TorqMax-Android.apk
 
   deploy-web:
     needs: build-apk
@@ -110,10 +92,10 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Download Built APK
+      - name: Download APK into Web Dist
         uses: actions/download-artifact@v4
         with:
-          name: TorqMax-App-Debug-APK
+          name: TorqMax-Android-APK
           path: ./dist
 
       - name: Deploy to GitHub Pages
