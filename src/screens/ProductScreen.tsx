@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { AppHeader } from '../components/AppHeader';
 import type { Tab } from '../App';
 import {
@@ -26,6 +26,33 @@ export const ProductScreen: React.FC<ProductScreenProps> = ({ setActiveTab }) =>
   const [selectedColorId, setSelectedColorId] = useState<string>('cm-black');
   const [viewAngle, setViewAngle] = useState<'driver' | 'codriver' | 'rear'>('driver');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Interactive 3D mat rotation
+  const [matRotX, setMatRotX] = useState(28);
+  const [matRotZ, setMatRotZ] = useState(-2);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef<{ x: number; y: number; rotX: number; rotZ: number } | null>(null);
+
+  const handleDragStart = useCallback((clientX: number, clientY: number) => {
+    setIsDragging(true);
+    dragStart.current = { x: clientX, y: clientY, rotX: matRotX, rotZ: matRotZ };
+  }, [matRotX, matRotZ]);
+
+  const handleDragMove = useCallback((clientX: number, clientY: number) => {
+    if (!dragStart.current) return;
+    const dx = clientX - dragStart.current.x;
+    const dy = clientY - dragStart.current.y;
+    // Horizontal drag → rotateZ, Vertical drag → rotateX
+    const newRotZ = Math.max(-25, Math.min(25, dragStart.current.rotZ + dx * 0.3));
+    const newRotX = Math.max(5, Math.min(55, dragStart.current.rotX - dy * 0.3));
+    setMatRotZ(newRotZ);
+    setMatRotX(newRotX);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    dragStart.current = null;
+  }, []);
 
   // Filtered vehicles
   const filteredModels = useMemo(() => {
@@ -777,104 +804,212 @@ Please share dispatch & availability details!`;
                 </div>
               </div>
 
-              {/* Graphical Mat Rendering */}
+              {/* 3D Premium Mat Rendering — Interactive */}
               <div
                 style={{
-                  height: 230,
+                  height: 320,
                   borderRadius: 14,
-                  background: 'radial-gradient(ellipse at 50% 50%, #1c1d22 0%, #0d0e10 100%)',
+                  background: 'radial-gradient(ellipse at 50% 40%, #1a1b20 0%, #0a0b0d 100%)',
                   border: '1px solid rgba(255,255,255,0.06)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
                   overflow: 'hidden',
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  touchAction: 'none',
+                  userSelect: 'none',
                 }}
+                onMouseDown={e => handleDragStart(e.clientX, e.clientY)}
+                onMouseMove={e => { if (isDragging) handleDragMove(e.clientX, e.clientY); }}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchStart={e => { const t = e.touches[0]; handleDragStart(t.clientX, t.clientY); }}
+                onTouchMove={e => { const t = e.touches[0]; handleDragMove(t.clientX, t.clientY); }}
+                onTouchEnd={handleDragEnd}
               >
-                {/* SVG Mat Graphic with Dynamic Pattern and Color */}
-                <svg width="220" height="210" viewBox="0 0 220 210">
-                  <defs>
-                    {/* Diamond Pattern for Checkmate */}
-                    <pattern id="live-pattern-checkmate" width="16" height="16" patternUnits="userSpaceOnUse">
+                {/* Ambient floor reflection */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: '15%',
+                  right: '15%',
+                  height: 60,
+                  background: `radial-gradient(ellipse at 50% 0%, ${currentColor.accentColor}15 0%, transparent 70%)`,
+                  filter: 'blur(20px)',
+                  pointerEvents: 'none',
+                }} />
+
+                {/* Spotlight cone from top */}
+                <div style={{
+                  position: 'absolute',
+                  top: -20,
+                  left: '25%',
+                  right: '25%',
+                  height: 120,
+                  background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 70%)',
+                  pointerEvents: 'none',
+                }} />
+
+                {/* Drag hint */}
+                {!isDragging && matRotX === 28 && matRotZ === -2 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    background: 'rgba(229,39,46,0.2)',
+                    border: '1px solid rgba(229,39,46,0.35)',
+                    borderRadius: 8,
+                    padding: '3px 8px',
+                    fontSize: '0.55rem',
+                    color: 'rgba(255,255,255,0.6)',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    pointerEvents: 'none',
+                    animation: 'matFloat 3s ease-in-out infinite',
+                  }}>
+                    ☝ Drag to rotate
+                  </div>
+                )}
+
+                {/* 3D Perspective Mat Container */}
+                <div style={{
+                  perspective: '600px',
+                  perspectiveOrigin: '50% 35%',
+                }}>
+                  <div style={{
+                    transform: `rotateX(${matRotX}deg) rotateZ(${matRotZ}deg)`,
+                    transformStyle: 'preserve-3d',
+                    transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+                    animation: isDragging ? 'none' : (matRotX === 28 && matRotZ === -2 ? 'matFloat 4s ease-in-out infinite' : 'none'),
+                  }}>
+                    {/* Drop Shadow underneath */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 20,
+                      left: 10,
+                      right: 10,
+                      bottom: -15,
+                      background: 'rgba(0,0,0,0.6)',
+                      borderRadius: '50%',
+                      filter: 'blur(18px)',
+                      transform: 'translateZ(-20px) scaleY(0.3)',
+                      pointerEvents: 'none',
+                    }} />
+
+                    <svg width="240" height="230" viewBox="0 0 240 230" style={{ display: 'block' }}>
+                      <defs>
+                        {/* Diamond Pattern for Checkmate */}
+                        <pattern id="live-pattern-checkmate-3d" width="14" height="14" patternUnits="userSpaceOnUse">
+                          <path
+                            d="M7 0 L14 7 L7 14 L0 7 Z"
+                            fill="none"
+                            stroke={currentColor.stitchColor}
+                            strokeWidth="0.7"
+                            opacity="0.85"
+                          />
+                        </pattern>
+
+                        {/* Ribbed Pattern for Exotic */}
+                        <pattern id="live-pattern-exotic-3d" width="20" height="12" patternUnits="userSpaceOnUse">
+                          <line x1="0" y1="4" x2="20" y2="4" stroke={currentColor.accentColor} strokeWidth="1.3" opacity="0.7" />
+                          <line x1="0" y1="10" x2="20" y2="10" stroke="rgba(0,0,0,0.35)" strokeWidth="0.7" />
+                        </pattern>
+
+                        {/* Realistic edge shadow / depth */}
+                        <filter id="mat-depth-shadow">
+                          <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#000" floodOpacity="0.45" />
+                          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={currentColor.accentColor} floodOpacity="0.15" />
+                        </filter>
+
+                        {/* Specular highlight gradient */}
+                        <linearGradient id="mat-specular" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
+                          <stop offset="40%" stopColor="rgba(255,255,255,0.02)" />
+                          <stop offset="100%" stopColor="rgba(0,0,0,0.1)" />
+                        </linearGradient>
+
+                        {/* Inner shadow for recessed pattern area */}
+                        <filter id="inner-recess">
+                          <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
+                          <feOffset dx="0" dy="2" result="offsetBlur" />
+                          <feComposite in="SourceGraphic" in2="offsetBlur" operator="over" />
+                        </filter>
+                      </defs>
+
+                      {/* ── Outer Raised Lip (18mm) ── */}
                       <path
-                        d="M8 0 L16 8 L8 16 L0 8 Z"
-                        fill="none"
-                        stroke={currentColor.stitchColor}
-                        strokeWidth="0.85"
-                      />
-                    </pattern>
-
-                    {/* Ribbed Pattern for Exotic */}
-                    <pattern id="live-pattern-exotic" width="22" height="16" patternUnits="userSpaceOnUse">
-                      <line
-                        x1="0"
-                        y1="8"
-                        x2="22"
-                        y2="8"
+                        d="M 48 18 C 85 12, 155 12, 192 18 C 215 45, 225 150, 200 200 C 165 212, 75 212, 40 200 C 15 150, 25 45, 48 18 Z"
+                        fill={currentColor.primaryColor}
                         stroke={currentColor.accentColor}
-                        strokeWidth="1.2"
+                        strokeWidth="2.5"
+                        filter="url(#mat-depth-shadow)"
                       />
-                      <line
-                        x1="0"
-                        y1="16"
-                        x2="22"
-                        y2="16"
-                        stroke="rgba(0,0,0,0.4)"
-                        strokeWidth="0.8"
+
+                      {/* ── Lip inner edge highlight ── */}
+                      <path
+                        d="M 55 26 C 88 21, 152 21, 185 26 C 206 50, 214 145, 192 192 C 158 202, 82 202, 48 192 C 26 145, 34 50, 55 26 Z"
+                        fill="none"
+                        stroke="rgba(255,255,255,0.06)"
+                        strokeWidth="1"
                       />
-                    </pattern>
 
-                    {/* Radial ambient mat glow */}
-                    <filter id="glow">
-                      <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor={currentColor.accentColor} floodOpacity="0.25" />
-                    </filter>
-                  </defs>
-
-                  {/* Outer 18mm Raised Lip / Base Mat Shape */}
-                  <path
-                    d="M 45 15 C 80 10, 140 10, 175 15 C 195 40, 205 140, 185 195 C 150 205, 70 205, 35 195 C 15 140, 25 40, 45 15 Z"
-                    fill={currentColor.primaryColor}
-                    stroke={currentColor.accentColor}
-                    strokeWidth="3.5"
-                    filter="url(#glow)"
-                  />
-
-                  {/* Inner Pattern Fill Area */}
-                  <path
-                    d="M 52 24 C 82 20, 138 20, 168 24 C 186 48, 194 135, 176 186 C 144 195, 76 195, 44 186 C 26 135, 34 48, 52 24 Z"
-                    fill={selectedStyleId === 'checkmate' ? 'url(#live-pattern-checkmate)' : 'url(#live-pattern-exotic)'}
-                    opacity="0.88"
-                  />
-
-                  {/* Stainless Steel Heel Pad on Driver Mat */}
-                  {viewAngle === 'driver' && (
-                    <g transform="translate(68, 70)">
-                      {/* Metal base */}
-                      <rect
-                        width="84"
-                        height="64"
-                        rx="8"
-                        fill="#2A2C30"
-                        stroke="#5A5D66"
-                        strokeWidth="1.5"
+                      {/* ── Recessed inner pattern area ── */}
+                      <path
+                        d="M 60 32 C 90 27, 150 27, 180 32 C 200 55, 208 142, 186 188 C 154 197, 86 197, 54 188 C 32 142, 40 55, 60 32 Z"
+                        fill={selectedStyleId === 'checkmate' ? 'url(#live-pattern-checkmate-3d)' : 'url(#live-pattern-exotic-3d)'}
+                        opacity="0.92"
                       />
-                      {/* Grip Rubber Ribs on Heel Pad */}
-                      <line x1="12" y1="16" x2="72" y2="16" stroke="#111" strokeWidth="4" strokeLinecap="round" />
-                      <line x1="12" y1="28" x2="72" y2="28" stroke="#111" strokeWidth="4" strokeLinecap="round" />
-                      <line x1="12" y1="40" x2="72" y2="40" stroke="#111" strokeWidth="4" strokeLinecap="round" />
-                      <line x1="12" y1="52" x2="72" y2="52" stroke="#111" strokeWidth="4" strokeLinecap="round" />
-                      {/* TorqMax Logo plate */}
-                      <rect x="26" y="22" width="32" height="14" rx="3" fill="#E5272E" />
-                      <text x="42" y="32" textAnchor="middle" fill="#fff" fontSize="7" fontWeight="bold" fontFamily="sans-serif">
-                        TORQMAX
-                      </text>
-                    </g>
-                  )}
 
-                  {/* Anti-Slip Anchor Clips */}
-                  <circle cx="65" cy="180" r="5.5" fill="#111" stroke="#444" strokeWidth="1.5" />
-                  <circle cx="155" cy="180" r="5.5" fill="#111" stroke="#444" strokeWidth="1.5" />
-                </svg>
+                      {/* ── Specular highlight overlay ── */}
+                      <path
+                        d="M 60 32 C 90 27, 150 27, 180 32 C 200 55, 208 142, 186 188 C 154 197, 86 197, 54 188 C 32 142, 40 55, 60 32 Z"
+                        fill="url(#mat-specular)"
+                        opacity="0.6"
+                      />
+
+                      {/* ── HEELPAD (Driver View) ── */}
+                      {viewAngle === 'driver' && (
+                        <g transform="translate(72, 72)">
+                          {/* Metal base with gradient */}
+                          <defs>
+                            <linearGradient id="heelpad-metal" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="#3a3d44" />
+                              <stop offset="50%" stopColor="#2a2c30" />
+                              <stop offset="100%" stopColor="#1e2024" />
+                            </linearGradient>
+                          </defs>
+                          <rect width="96" height="72" rx="10" fill="url(#heelpad-metal)" stroke="#555" strokeWidth="1" />
+                          {/* Rubber grip ribs */}
+                          {[16, 28, 40, 52, 64].map(y => (
+                            <line key={y} x1="10" y1={y} x2="86" y2={y} stroke="#111" strokeWidth="3.5" strokeLinecap="round" opacity="0.8" />
+                          ))}
+                          {/* TorqMax logo image (transparent) */}
+                          <image href="./torqmax-logo.png" x="14" y="10" width="68" height="52" opacity="0.9" style={{ mixBlendMode: 'screen' }} />
+                          {/* Subtle shine on metal */}
+                          <rect width="96" height="72" rx="10" fill="rgba(255,255,255,0.03)" />
+                        </g>
+                      )}
+
+                      {/* ── Anti-Slip Anchor Clips ── */}
+                      <g>
+                        <circle cx="70" cy="192" r="6" fill="#111" stroke="#555" strokeWidth="1.5" />
+                        <circle cx="70" cy="192" r="2" fill="#333" />
+                        <circle cx="170" cy="192" r="6" fill="#111" stroke="#555" strokeWidth="1.5" />
+                        <circle cx="170" cy="192" r="2" fill="#333" />
+                      </g>
+
+                      {/* ── Edge lighting effect ── */}
+                      <path
+                        d="M 48 18 C 85 12, 155 12, 192 18"
+                        fill="none"
+                        stroke="rgba(255,255,255,0.1)"
+                        strokeWidth="1"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                </div>
 
                 {/* Overlay Specification Badges */}
                 <div
@@ -882,14 +1017,15 @@ Please share dispatch & availability details!`;
                     position: 'absolute',
                     top: 10,
                     left: 10,
-                    background: 'rgba(0,0,0,0.65)',
-                    backdropFilter: 'blur(6px)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    padding: '3px 8px',
-                    borderRadius: 6,
+                    background: 'rgba(0,0,0,0.7)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(229,39,46,0.3)',
+                    padding: '4px 10px',
+                    borderRadius: 8,
                     fontSize: '0.62rem',
                     color: '#E5272E',
                     fontWeight: 700,
+                    letterSpacing: '0.05em',
                   }}
                 >
                   ● 18MM RAISED LIP
@@ -900,17 +1036,36 @@ Please share dispatch & availability details!`;
                     position: 'absolute',
                     bottom: 10,
                     right: 10,
-                    background: 'rgba(0,0,0,0.65)',
-                    backdropFilter: 'blur(6px)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    padding: '3px 8px',
-                    borderRadius: 6,
+                    background: 'rgba(0,0,0,0.7)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    padding: '4px 10px',
+                    borderRadius: 8,
                     fontSize: '0.62rem',
                     color: '#D4D4D4',
                     fontWeight: 600,
+                    letterSpacing: '0.05em',
                   }}
                 >
                   OEM ANCHOR CLIPS
+                </div>
+
+                {/* View angle label */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 10,
+                  left: 10,
+                  background: 'rgba(229,39,46,0.15)',
+                  border: '1px solid rgba(229,39,46,0.3)',
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  fontSize: '0.58rem',
+                  fontWeight: 700,
+                  color: '#E5272E',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}>
+                  {viewAngle} view
                 </div>
               </div>
 

@@ -5,7 +5,7 @@ import { ProductScreen } from './screens/ProductScreen';
 import { AboutScreen } from './screens/AboutScreen';
 import { ContactScreen } from './screens/ContactScreen';
 import { BottomNav } from './components/BottomNav';
-import { InstallAppBanner } from './components/InstallAppBanner';
+
 
 export type Tab = 'home' | 'products' | 'about' | 'contact';
 
@@ -46,7 +46,7 @@ export default function App() {
         {renderScreen()}
       </div>
 
-      <InstallAppBanner />
+
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </>
   );
