@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Tab } from '../App';
+import { useCart } from '../context/CartContext';
 
 interface BottomNavProps {
   activeTab: Tab;
@@ -25,6 +26,14 @@ const ProductsIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
+const CartIcon = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke={active ? AMBER : MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="21" r="1" />
+    <circle cx="20" cy="21" r="1" />
+    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+  </svg>
+);
+
 const AboutIcon = ({ active }: { active: boolean }) => (
   <svg viewBox="0 0 24 24" fill={active ? AMBER : 'none'} stroke={active ? AMBER : MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="8" r="4" />
@@ -39,9 +48,12 @@ const ContactIcon = ({ active }: { active: boolean }) => (
 );
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
+  const { totalItems } = useCart();
+
   const tabs: { id: Tab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
     { id: 'home',     label: 'Home',     Icon: HomeIcon },
     { id: 'products', label: 'Mats',     Icon: ProductsIcon },
+    { id: 'cart',     label: 'Cart',     Icon: CartIcon },
     { id: 'about',    label: 'About',    Icon: AboutIcon },
     { id: 'contact',  label: 'Contact',  Icon: ContactIcon },
   ];
@@ -56,7 +68,34 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
           onClick={() => setActiveTab(id)}
           aria-label={label}
         >
-          <Icon active={activeTab === id} />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon active={activeTab === id} />
+            {id === 'cart' && totalItems > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: -5,
+                  right: -9,
+                  minWidth: 16,
+                  height: 16,
+                  padding: '0 4px',
+                  borderRadius: 8,
+                  background: 'var(--amber)',
+                  color: '#000',
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(245,158,11,0.5)',
+                  lineHeight: 1,
+                  animation: 'cartBadgePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                }}
+              >
+                {totalItems > 99 ? '99+' : totalItems}
+              </span>
+            )}
+          </div>
           <span>{label}</span>
         </button>
       ))}

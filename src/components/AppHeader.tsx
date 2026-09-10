@@ -1,11 +1,35 @@
 import React from 'react';
+import { useCart } from '../context/CartContext';
+import type { Tab } from '../App';
 
 interface AppHeaderProps {
   title?: string;
   showLogo?: boolean;
+  setActiveTab?: (tab: Tab) => void;
 }
 
-export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true }) => {
+export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true, setActiveTab }) => {
+  const { totalItems } = useCart();
+  const pressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startLongPress = () => {
+    pressTimerRef.current = setTimeout(() => {
+      try {
+        if (navigator.vibrate) navigator.vibrate(80);
+      } catch {
+        // ignore vibration error
+      }
+      setActiveTab?.('admin');
+    }, 2200);
+  };
+
+  const cancelLongPress = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  };
+
   return (
     <header style={{
       position: 'sticky',
@@ -25,7 +49,22 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true }) 
       minHeight: '56px',
     }}>
       {showLogo ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <div
+          onMouseDown={startLongPress}
+          onMouseUp={cancelLongPress}
+          onMouseLeave={cancelLongPress}
+          onTouchStart={startLongPress}
+          onTouchEnd={cancelLongPress}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            cursor: 'pointer',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
+          title="TorqMax"
+        >
           {/* Real TorqMax Logo — mix-blend-mode:screen removes the white bg */}
           <img
             src="./torqmax-logo.png"
@@ -36,6 +75,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true }) 
               mixBlendMode: 'screen',
               filter: 'brightness(1.05)',
               display: 'block',
+              pointerEvents: 'none',
             }}
           />
         </div>
@@ -49,36 +89,90 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true }) 
         }}>{title}</h2>
       )}
 
-      {/* Top-right: WhatsApp quick action */}
-      <button
-        onClick={() => {
-          try {
-            const opened = window.open('https://wa.me/918401304787?text=Hi+TorqMax%2C+I+have+an+enquiry.', '_system');
-            if (!opened) window.location.href = 'https://wa.me/918401304787?text=Hi+TorqMax%2C+I+have+an+enquiry.';
-          } catch { window.location.href = 'https://wa.me/918401304787?text=Hi+TorqMax%2C+I+have+an+enquiry.'; }
-        }}
-        aria-label="WhatsApp"
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          background: '#25D366',
-          border: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          cursor: 'pointer',
-          boxShadow: '0 2px 12px rgba(37,211,102,0.35)',
-          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(37,211,102,0.5)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(37,211,102,0.35)'; }}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff">
-          <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm0 18.15c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 01-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 012.41 5.83c.02 4.54-3.68 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.88 2.38 1 2.54c.12.17 1.73 2.65 4.2 3.71.59.25 1.05.4 1.41.51.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.17-.47-.29z" />
-        </svg>
-      </button>
+      {/* Right side: Cart + WhatsApp */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Cart icon with badge */}
+        <button
+          onClick={() => setActiveTab?.('cart')}
+          aria-label="Cart"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: totalItems > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
+            border: totalItems > 0 ? '1.5px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={totalItems > 0 ? '#F59E0B' : '#888'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="21" r="1" />
+            <circle cx="20" cy="21" r="1" />
+            <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+          </svg>
+
+          {/* Badge */}
+          {totalItems > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: 'var(--amber)',
+                color: '#000',
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid #0D0D0D',
+                animation: 'cartBadgePop 0.3s ease-out',
+              }}
+            >
+              {totalItems > 9 ? '9+' : totalItems}
+            </div>
+          )}
+        </button>
+
+        {/* Top-right: WhatsApp quick action */}
+        <button
+          onClick={() => {
+            try {
+              const opened = window.open('https://wa.me/918401304787?text=Hi+TorqMax%2C+I+have+an+enquiry.', '_system');
+              if (!opened) window.location.href = 'https://wa.me/918401304787?text=Hi+TorqMax%2C+I+have+an+enquiry.';
+            } catch { window.location.href = 'https://wa.me/918401304787?text=Hi+TorqMax%2C+I+have+an+enquiry.'; }
+          }}
+          aria-label="WhatsApp"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: '#25D366',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            cursor: 'pointer',
+            boxShadow: '0 2px 12px rgba(37,211,102,0.35)',
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(37,211,102,0.5)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(37,211,102,0.35)'; }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff">
+            <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm0 18.15c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 01-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 012.41 5.83c.02 4.54-3.68 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.88 2.38 1 2.54c.12.17 1.73 2.65 4.2 3.71.59.25 1.05.4 1.41.51.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.17-.47-.29z" />
+          </svg>
+        </button>
+      </div>
     </header>
   );
 };

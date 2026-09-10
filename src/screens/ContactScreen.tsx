@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { AppHeader } from '../components/AppHeader';
+import type { Tab } from '../App';
 
 type SubjectOption = 'Product Enquiry' | 'Fitment Query' | 'Order Status' | 'Partnership' | 'Other';
 
-export const ContactScreen: React.FC = () => {
+interface ContactScreenProps {
+  setActiveTab: (tab: Tab) => void;
+}
+
+export const ContactScreen: React.FC<ContactScreenProps> = ({ setActiveTab }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -67,7 +72,7 @@ export const ContactScreen: React.FC = () => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <AppHeader />
+      <AppHeader setActiveTab={setActiveTab} />
 
       <div className="scroll-page page-enter">
 

@@ -73,7 +73,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveTab }) => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <AppHeader />
+      <AppHeader setActiveTab={setActiveTab} />
 
       <div className="scroll-page page-enter">
 

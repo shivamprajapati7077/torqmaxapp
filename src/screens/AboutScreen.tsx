@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppHeader } from '../components/AppHeader';
+import type { Tab } from '../App';
 
 const values = [
   { icon: '🎯', title: 'Precision First', desc: 'Every template is 3D-scanned directly from the actual vehicle floor. Zero gaps, zero pedal clearance issues, zero trimming required.' },
@@ -22,10 +23,14 @@ const qcSteps = [
   'Barcode & Tracking Label',
 ];
 
-export const AboutScreen: React.FC = () => {
+interface AboutScreenProps {
+  setActiveTab: (tab: Tab) => void;
+}
+
+export const AboutScreen: React.FC<AboutScreenProps> = ({ setActiveTab }) => {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <AppHeader />
+      <AppHeader setActiveTab={setActiveTab} />
 
       <div className="scroll-page page-enter">
 

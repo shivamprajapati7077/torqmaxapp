@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
+import { useCart } from '../context/CartContext';
 import { AppHeader } from '../components/AppHeader';
 import type { Tab } from '../App';
 import {
@@ -26,6 +27,10 @@ export const ProductScreen: React.FC<ProductScreenProps> = ({ setActiveTab }) =>
   const [selectedColorId, setSelectedColorId] = useState<string>('cm-black');
   const [viewAngle, setViewAngle] = useState<'driver' | 'codriver' | 'rear'>('driver');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [showAddedToast, setShowAddedToast] = useState(false);
+  const { addItem } = useCart();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Interactive 3D mat rotation
   const [matRotX, setMatRotX] = useState(28);
@@ -73,24 +78,28 @@ export const ProductScreen: React.FC<ProductScreenProps> = ({ setActiveTab }) =>
     setSelectedColorId(MAT_STYLES[styleId].colors[0].id);
   };
 
-  // Build WhatsApp prefilled message
-  const whatsappUrl = useMemo(() => {
-    const text = `Hello TorqMax! I want to order custom vehicle mats:
-
-🚗 Car Model: ${selectedModel.name}
-📦 Category: ${PRICING_BY_CATEGORY[selectedModel.category].label}
-✨ Style: ${currentStyle.name} (${currentStyle.tagline})
-🎨 Colour: ${currentColor.name}
-
-Please share dispatch & availability details!`;
-    return `https://wa.me/918401304787?text=${encodeURIComponent(text)}`;
-  }, [selectedModel, currentStyle, currentColor]);
+  const handleAddToCart = () => {
+    addItem({
+      model: selectedModel,
+      styleId: selectedStyleId,
+      styleName: currentStyle.name,
+      styleTagline: currentStyle.tagline,
+      colorId: selectedColorId,
+      colorName: currentColor.name,
+      quantity,
+    });
+    setQuantity(1);
+    setShowAddedToast(true);
+    setTimeout(() => setShowAddedToast(false), 2200);
+    // Scroll back to top so they can keep browsing
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
-      <AppHeader />
+      <AppHeader setActiveTab={setActiveTab} />
 
-      <div className="scroll-page page-enter" style={{ padding: '0 0 40px' }}>
+      <div ref={scrollContainerRef} className="scroll-page page-enter" style={{ padding: '0 0 40px' }}>
         {/* ── TOP HERO HEADER ─────────────────────────────── */}
         <div
           style={{
@@ -1102,114 +1111,302 @@ Please share dispatch & availability details!`;
           </section>
 
           {/* ══════════════════════════════════════════════════
-              STEP 5: ORDER SUMMARY & WHATSAPP ACTION
+              STEP 5: CONFIRM & DISPATCH
               ══════════════════════════════════════════════════ */}
           <section
             style={{
-              background: 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(18,19,26,0.95) 100%)',
-              border: '1.5px solid rgba(245,158,11,0.3)',
-              borderRadius: 16,
-              padding: '18px',
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(20,20,28,0.98) 100%)',
+              border: '1.5px solid rgba(245,158,11,0.35)',
+              borderRadius: 20,
+              padding: '20px',
+              boxShadow: '0 10px 32px rgba(0,0,0,0.5)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  YOUR CONFIGURATION
+            {/* Step Header with direct dispatch tag */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: 'var(--amber)',
+                    color: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                  }}
+                >
+                  5
                 </span>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginTop: 2 }}>
-                  {selectedModel.name}
+                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#fff', letterSpacing: '0.04em' }}>
+                  CONFIRM & ADD TO CART
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  color: 'var(--amber)',
+                  background: 'rgba(245,158,11,0.12)',
+                  border: '1px solid rgba(245,158,11,0.3)',
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  textTransform: 'uppercase',
+                }}
+              >
+                ● Custom Fitment
+              </span>
+            </div>
+
+            {/* Vehicle & Configuration Summary Box */}
+            <div
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 14,
+                padding: '14px',
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+                    {PRICING_BY_CATEGORY[selectedModel.category].label} · #{selectedModel.srNo}
+                  </div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.25 }}>
+                    {selectedModel.name}
+                  </h3>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>MRP / Set</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--amber)' }}>
+                    ₹{PRICING_BY_CATEGORY[selectedModel.category].mrp.toLocaleString('en-IN')}
+                  </div>
                 </div>
               </div>
 
               <div
                 style={{
-                  background: 'rgba(37,211,102,0.15)',
-                  border: '1px solid rgba(37,211,102,0.4)',
-                  borderRadius: 8,
-                  padding: '4px 10px',
-                  color: '#25D366',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 8,
+                  marginTop: 12,
+                  paddingTop: 10,
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                  fontSize: '0.78rem',
                 }}
               >
-                ✓ DIRECT DISPATCH
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem' }}>STYLE SERIES</span>
+                  <span style={{ color: '#fff', fontWeight: 700 }}>{currentStyle.name} Series</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem' }}>COLOUR SHADE</span>
+                  <span style={{ color: '#fff', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: currentColor.primaryColor, border: `1px solid ${currentColor.accentColor}` }} />
+                    {currentColor.name}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Config Highlights */}
-            <div
+            {/* Quantity Selector with Quick Presets */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Select Quantity (Sets)
+                </label>
+                {quantity > 1 && (
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--amber)' }}>
+                    Total: ₹{(PRICING_BY_CATEGORY[selectedModel.category].mrp * quantity).toLocaleString('en-IN')}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <button
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    color: '#fff',
+                    fontSize: '1.2rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={e => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 1) setQuantity(val);
+                  }}
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    background: 'var(--surface)',
+                    border: '2px solid var(--amber)',
+                    borderRadius: 12,
+                    height: 44,
+                    fontSize: '1.15rem',
+                    fontWeight: 900,
+                    color: '#fff',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => setQuantity(q => q + 1)}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    color: '#fff',
+                    fontSize: '1.2rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Quick Quantity Presets */}
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[1, 5, 10, 25].map(q => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setQuantity(q)}
+                    style={{
+                      flex: 1,
+                      padding: '5px 0',
+                      borderRadius: 8,
+                      border: quantity === q ? '1.5px solid var(--amber)' : '1px solid rgba(255,255,255,0.08)',
+                      background: quantity === q ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.04)',
+                      color: quantity === q ? 'var(--amber)' : 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {q === 1 ? '1 Set' : `${q} Sets`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Primary Action: Add to Cart (Orders dispatched via Cart only) */}
+            <button
+              id="add-to-cart-button"
+              onClick={handleAddToCart}
               style={{
-                fontSize: '0.78rem',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.7,
-                borderTop: '1px solid var(--border)',
-                paddingTop: 12,
-                marginBottom: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                background: 'linear-gradient(135deg, var(--amber) 0%, #D97706 100%)',
+                color: '#000',
+                fontWeight: 900,
+                fontSize: '1rem',
+                letterSpacing: '0.04em',
+                padding: '16px',
+                borderRadius: 14,
+                border: 'none',
+                width: '100%',
+                cursor: 'pointer',
+                boxShadow: '0 6px 24px rgba(245,158,11,0.35)',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                marginBottom: 10,
               }}
             >
-              <div>• <strong>Vehicle:</strong> {selectedModel.name} ({PRICING_BY_CATEGORY[selectedModel.category].label})</div>
-              <div>• <strong>Style:</strong> {currentStyle.name} Series ({currentStyle.tagline})</div>
-              <div>• <strong>Colour:</strong> {currentColor.name}</div>
-              <div>• <strong>Origin:</strong> Crafted in Sachin GIDC, Surat</div>
-            </div>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+              </svg>
+              <span>ADD TO CART ({quantity} SET{quantity > 1 ? 'S' : ''})</span>
+            </button>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {/* WhatsApp Direct Order Button */}
-              <button
-                id="whatsapp-order-button"
-                onClick={() => {
-                  // '_system' tells Capacitor/Android WebView to open via the OS
-                  // handler (i.e. directly open WhatsApp), not inside the webview.
-                  // Fallback to window.location for plain web browsers.
-                  try {
-                    const opened = window.open(whatsappUrl, '_system');
-                    if (!opened) window.location.href = whatsappUrl;
-                  } catch {
-                    window.location.href = whatsappUrl;
-                  }
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                  background: '#25D366',
-                  color: '#000',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  letterSpacing: '0.04em',
-                  padding: '14px',
-                  borderRadius: 12,
-                  border: 'none',
-                  width: '100%',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 20px rgba(37,211,102,0.3)',
-                  transition: 'transform 0.1s ease',
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm0 18.15c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 01-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 012.41 5.83c.02 4.54-3.68 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.88 2.38 1 2.54c.12.17 1.73 2.65 4.2 3.71.59.25 1.05.4 1.41.51.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.17-.47-.29z" />
-                </svg>
-                <span>SEND ORDER ON WHATSAPP</span>
-              </button>
-
-              {/* Inquiry / Doorstep Fitting Button */}
-              <button
-                onClick={() => setActiveTab('contact')}
-                className="btn-outline"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '0.85rem',
-                  borderRadius: 12,
-                }}
-              >
-                REQUEST CUSTOM DOORSTEP FITTING →
-              </button>
-            </div>
+            {/* Doorstep Fitting Inquiry */}
+            <button
+              onClick={() => setActiveTab('contact')}
+              className="btn-outline"
+              style={{
+                width: '100%',
+                padding: '11px',
+                fontSize: '0.82rem',
+                borderRadius: 12,
+              }}
+            >
+              REQUEST CUSTOM DOORSTEP FITTING →
+            </button>
           </section>
+
+          {/* ── ADDED TO CART TOAST ─── */}
+          {showAddedToast && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 76,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(18, 20, 26, 0.98)',
+                border: '1.5px solid var(--amber)',
+                backdropFilter: 'blur(16px)',
+                color: '#fff',
+                padding: '10px 16px',
+                borderRadius: 14,
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                zIndex: 999,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                boxShadow: '0 12px 36px rgba(0,0,0,0.8), 0 0 20px rgba(245,158,11,0.3)',
+                animation: 'fadeSlideIn 0.3s ease-out',
+                maxWidth: '90%',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ color: '#25D366', fontSize: '1.1rem' }}>✓</span>
+                <span>Added to cart!</span>
+              </div>
+              <button
+                onClick={() => setActiveTab('cart')}
+                style={{
+                  background: 'var(--amber)',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '6px 12px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                VIEW CART →
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

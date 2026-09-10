@@ -427,6 +427,17 @@ h1, h2, h3, h4 {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes cartBadgePop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
 /* ─── Status Bar Safe Area Spacer ────────────── */
 .status-spacer {
   height: calc(var(--sat) + 12px);
@@ -490,3 +501,32 @@ img { display: block; max-width: 100%; }
 html, body {
   overscroll-behavior-y: none;
 }
+
+/* ─── Print Styles for Dispatch Slip ─────────── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .no-print, .bottom-nav, header, .app-header {
+    display: none !important;
+  }
+  .print-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  #printable-dispatch-slip, #printable-dispatch-slip * {
+    visibility: visible;
+  }
+  #printable-dispatch-slip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 10mm 15mm !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+
