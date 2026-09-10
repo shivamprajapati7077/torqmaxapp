@@ -5,12 +5,14 @@ import { ProductScreen } from './screens/ProductScreen';
 import { AboutScreen } from './screens/AboutScreen';
 import { ContactScreen } from './screens/ContactScreen';
 import { CartScreen } from './screens/CartScreen';
+import { AccountScreen } from './screens/AccountScreen';
 import { AdminScreen } from './screens/AdminScreen';
 import { BottomNav } from './components/BottomNav';
 import { CartProvider } from './context/CartContext';
+import { AuthProvider } from './context/AuthContext';
 
 
-export type Tab = 'home' | 'products' | 'about' | 'contact' | 'cart' | 'admin';
+export type Tab = 'home' | 'products' | 'cart' | 'account' | 'about' | 'contact' | 'admin';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -41,25 +43,27 @@ export default function App() {
     switch (activeTab) {
       case 'home':     return <HomeScreen setActiveTab={setActiveTab} />;
       case 'products': return <ProductScreen setActiveTab={setActiveTab} />;
+      case 'cart':     return <CartScreen setActiveTab={setActiveTab} />;
+      case 'account':  return <AccountScreen setActiveTab={setActiveTab} />;
       case 'about':    return <AboutScreen setActiveTab={setActiveTab} />;
       case 'contact':  return <ContactScreen setActiveTab={setActiveTab} />;
-      case 'cart':     return <CartScreen setActiveTab={setActiveTab} />;
       case 'admin':    return <AdminScreen setActiveTab={setActiveTab} />;
     }
   };
 
   return (
-    <CartProvider>
-      {showSplash && <SplashScreen fading={splashFading} onDismiss={dismissSplash} />}
+    <AuthProvider>
+      <CartProvider>
+        {showSplash && <SplashScreen fading={splashFading} onDismiss={dismissSplash} />}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {renderScreen()}
-      </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {renderScreen()}
+        </div>
 
-
-      {activeTab !== 'admin' && (
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
-      )}
-    </CartProvider>
+        {activeTab !== 'admin' && (
+          <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+        )}
+      </CartProvider>
+    </AuthProvider>
   );
 }

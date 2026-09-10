@@ -1,5 +1,6 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import type { Tab } from '../App';
 
 interface AppHeaderProps {
@@ -10,6 +11,7 @@ interface AppHeaderProps {
 
 export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true, setActiveTab }) => {
   const { totalItems } = useCart();
+  const { user, isOwner } = useAuth();
   const pressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startLongPress = () => {
@@ -89,8 +91,48 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true, se
         }}>{title}</h2>
       )}
 
-      {/* Right side: Cart + WhatsApp */}
+      {/* Right side: Account + Cart + WhatsApp */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* User / Account Button */}
+        <button
+          onClick={() => setActiveTab?.('account')}
+          aria-label="Account"
+          title={user ? (isOwner ? "Owner Console" : (user.displayName || user.email || "Account")) : "Sign In / Account"}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: user ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
+            border: user ? '1.5px solid rgba(245,158,11,0.5)' : '1px solid rgba(255,255,255,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'all 0.2s ease',
+            padding: 0,
+            overflow: 'hidden',
+          }}
+        >
+          {user?.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt="Profile"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : user ? (
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--amber)' }}>
+              {isOwner ? '👑' : (user.displayName ? user.displayName.charAt(0).toUpperCase() : '👤')}
+            </span>
+          ) : (
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="7" r="4" />
+              <path d="M5.5 21a8.38 8.38 0 0113 0" />
+            </svg>
+          )}
+        </button>
+
         {/* Cart icon with badge */}
         <button
           onClick={() => setActiveTab?.('cart')}

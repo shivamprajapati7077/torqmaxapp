@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateOrderId } from '../services/orderStorage';
 import { recordDispatchOrder } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 import type { DispatchOrder, OrderCustomer, OrderItem } from '../types/order';
 
 interface DispatchOrderModalProps {
@@ -22,6 +23,7 @@ export const DispatchOrderModal: React.FC<DispatchOrderModalProps> = ({
   totalUnits,
   onOrderCompleted,
 }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<OrderCustomer>(() => {
     try {
       const saved = localStorage.getItem(SAVED_CUSTOMER_KEY);
@@ -56,6 +58,13 @@ export const DispatchOrderModal: React.FC<DispatchOrderModalProps> = ({
       notes: '',
     };
   });
+
+  // If user is logged in and form name is empty, auto-populate from auth
+  useEffect(() => {
+    if (user?.displayName && !formData.name) {
+      setFormData(prev => ({ ...prev, name: user.displayName || prev.name }));
+    }
+  }, [user]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -108,6 +117,8 @@ export const DispatchOrderModal: React.FC<DispatchOrderModalProps> = ({
         ...formData,
         phone: formattedPhone,
       },
+      customerEmail: user?.email || undefined,
+      customerUid: user?.uid || undefined,
       items,
       totalItems,
       totalUnits,

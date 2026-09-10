@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   OWNER_EMAIL,
-  signInWithGoogle,
-  signOutAdmin,
-  getSavedAuthUser,
-  subscribeToAuthChanges,
   fetchDispatchOrders,
+  fetchRegisteredCustomers,
   updateOrderStatus,
-  type AdminUser,
+  type RegisteredCustomer,
 } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 import type { DispatchOrder, OrderStatus } from '../types/order';
 import type { Tab } from '../App';
 
@@ -17,30 +15,33 @@ interface AdminScreenProps {
 }
 
 export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
-  const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => getSavedAuthUser());
+  const { user, isOwner: authIsOwner, loginWithGoogle, logout } = useAuth();
+  const currentUser = user;
 
   const [orders, setOrders] = useState<DispatchOrder[]>([]);
+  const [customers, setCustomers] = useState<RegisteredCustomer[]>([]);
+  const [adminTab, setAdminTab] = useState<'orders' | 'customers'>('orders');
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<DispatchOrder | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const isOwner = currentUser?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
+  const isOwner =
+    authIsOwner ||
+    (currentUser?.email || '').toLowerCase() === OWNER_EMAIL.toLowerCase();
 
-  // Listen to auth changes
-  useEffect(() => {
-    const unsub = subscribeToAuthChanges(user => {
-      setCurrentUser(user);
-    });
-    return () => unsub();
-  }, []);
-
-  // Load orders on mount or when user changes
+  // Load orders and registered customers on mount or when user changes
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
-      const data = await fetchDispatchOrders();
-      if (isMounted) setOrders(data);
+      const [orderData, customerData] = await Promise.all([
+        fetchDispatchOrders(),
+        fetchRegisteredCustomers(),
+      ]);
+      if (isMounted) {
+        setOrders(orderData);
+        setCustomers(customerData);
+      }
     };
     load();
     return () => {
@@ -50,17 +51,17 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
 
   const handleLogin = async () => {
     try {
-      const { user } = await signInWithGoogle();
-      setCurrentUser(user);
-    } catch (err) {
+      await loginWithGoogle();
+    } catch (err: any) {
       console.error('Login error:', err);
-      alert('Authentication failed. Please try again.');
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        alert(err?.message || 'Authentication failed. Please try again.');
+      }
     }
   };
 
   const handleLogout = async () => {
-    await signOutAdmin();
-    setCurrentUser(null);
+    await logout();
   };
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
@@ -93,6 +94,18 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
       return matchStatus && matchText;
     });
   }, [orders, statusFilter, searchQuery]);
+
+  // Filtered customer parties
+  const filteredCustomers = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return customers;
+    return customers.filter(
+      c =>
+        (c.displayName && c.displayName.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q)) ||
+        (c.role && c.role.toLowerCase().includes(q))
+    );
+  }, [customers, searchQuery]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -440,11 +453,57 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
           </div>
         </div>
 
+        {/* View Toggle: Orders vs Parties */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+          <button
+            onClick={() => setAdminTab('orders')}
+            style={{
+              padding: '10px 14px',
+              borderRadius: 12,
+              border: adminTab === 'orders' ? '1.5px solid var(--amber)' : '1px solid var(--border)',
+              background: adminTab === 'orders' ? 'rgba(245,158,11,0.15)' : 'var(--surface)',
+              color: adminTab === 'orders' ? 'var(--amber)' : 'var(--text-secondary)',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            📦 Dispatch Orders ({orders.length})
+          </button>
+          <button
+            onClick={() => setAdminTab('customers')}
+            style={{
+              padding: '10px 14px',
+              borderRadius: 12,
+              border: adminTab === 'customers' ? '1.5px solid var(--amber)' : '1px solid var(--border)',
+              background: adminTab === 'customers' ? 'rgba(245,158,11,0.15)' : 'var(--surface)',
+              color: adminTab === 'customers' ? 'var(--amber)' : 'var(--text-secondary)',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            👥 Parties & Users ({customers.length})
+          </button>
+        </div>
+
         {/* Search Bar */}
         <div style={{ marginBottom: 12 }}>
           <input
             type="text"
-            placeholder="Search by customer, phone, city, order ID, model..."
+            placeholder={
+              adminTab === 'orders'
+                ? 'Search by customer, phone, city, order ID, model...'
+                : 'Search parties by name or email...'
+            }
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{
@@ -460,182 +519,182 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
           />
         </div>
 
-        {/* Filter Pills */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, marginBottom: 12 }}>
-          {(['all', 'new', 'confirmed', 'dispatched', 'delivered'] as const).map(st => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 20,
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                whiteSpace: 'nowrap',
-                border: statusFilter === st ? '1px solid var(--amber)' : '1px solid var(--border)',
-                background: statusFilter === st ? 'var(--amber)' : 'var(--surface)',
-                color: statusFilter === st ? '#000' : 'var(--text-secondary)',
-                cursor: 'pointer',
-              }}
-            >
-              {st === 'all' ? `All (${orders.length})` : st}
-            </button>
-          ))}
-        </div>
-
-        {/* Orders List */}
-        {filteredOrders.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '40px 20px',
-              background: 'var(--surface)',
-              borderRadius: 14,
-              border: '1px solid var(--border)',
-            }}
-          >
-            <div style={{ fontSize: '2rem', marginBottom: 8, opacity: 0.5 }}>📦</div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>No orders found matching your filter.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {filteredOrders.map(order => {
-              const badge = getStatusBadge(order.status);
-              return (
-                <div
-                  key={order.id}
+        {adminTab === 'orders' ? (
+          <>
+            {/* Filter Pills */}
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, marginBottom: 12 }}>
+              {(['all', 'new', 'confirmed', 'dispatched', 'delivered'] as const).map(st => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
                   style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 16,
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 12,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    whiteSpace: 'nowrap',
+                    border: statusFilter === st ? '1px solid var(--amber)' : '1px solid var(--border)',
+                    background: statusFilter === st ? 'var(--amber)' : 'var(--surface)',
+                    color: statusFilter === st ? '#000' : 'var(--text-secondary)',
+                    cursor: 'pointer',
                   }}
                 >
-                  {/* Top Bar: Order ID, Date & Status */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 10 }}>
-                    <div>
-                      <span
-                        style={{
-                          fontSize: '0.84rem',
-                          fontWeight: 800,
-                          color: '#fff',
-                          fontFamily: 'var(--font-brand)',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        {order.id}
-                      </span>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                        {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </div>
-                    </div>
+                  {st === 'all' ? `All (${orders.length})` : st}
+                </button>
+              ))}
+            </div>
 
-                    {/* Status Dropdown */}
-                    <select
-                      value={order.status}
-                      disabled={isUpdating}
-                      onChange={e => handleStatusChange(order.id, e.target.value as OrderStatus)}
+            {/* Orders List */}
+            {filteredOrders.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  background: 'var(--surface)',
+                  borderRadius: 14,
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: 8, opacity: 0.5 }}>📦</div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>No orders found matching your filter.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {filteredOrders.map(order => {
+                  const badge = getStatusBadge(order.status);
+                  return (
+                    <div
+                      key={order.id}
                       style={{
-                        background: badge.bg,
-                        color: badge.color,
-                        border: `1px solid ${badge.color}40`,
-                        borderRadius: 12,
-                        padding: '4px 8px',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        outline: 'none',
-                        cursor: 'pointer',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 16,
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                       }}
                     >
-                      <option value="new" style={{ background: '#1c1c24', color: '#facc15' }}>🟡 New</option>
-                      <option value="confirmed" style={{ background: '#1c1c24', color: '#4ade80' }}>🟢 Confirmed</option>
-                      <option value="dispatched" style={{ background: '#1c1c24', color: '#60a5fa' }}>🔵 Dispatched</option>
-                      <option value="delivered" style={{ background: '#1c1c24', color: '#c084fc' }}>✅ Delivered</option>
-                    </select>
-                  </div>
+                      {/* Top Bar: Order ID, Date & Status */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 10 }}>
+                        <div>
+                          <span
+                            style={{
+                              fontSize: '0.84rem',
+                              fontWeight: 800,
+                              color: '#fff',
+                              fontFamily: 'var(--font-brand)',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            {order.id}
+                          </span>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                            {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        </div>
 
-                  {/* Customer Information Block */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>
-                        {order.customer.name}
-                      </span>
-                      <a
-                        href={`tel:${order.customer.phone}`}
+                        {/* Interactive Status Pill */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span
+                            style={{
+                              background: badge.bg,
+                              color: badge.color,
+                              border: `1px solid ${badge.color}40`,
+                              borderRadius: 12,
+                              padding: '4px 10px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {badge.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Customer Info Card */}
+                      <div
                         style={{
-                          fontSize: '0.75rem',
-                          color: '#4ade80',
-                          textDecoration: 'none',
-                          fontWeight: 700,
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.05)',
+                          borderRadius: 10,
+                          padding: '10px 12px',
                           display: 'flex',
-                          alignItems: 'center',
+                          flexDirection: 'column',
                           gap: 4,
                         }}
                       >
-                        📞 {order.customer.phone}
-                      </a>
-                    </div>
-
-                    {order.customer.businessName && (
-                      <div style={{ fontSize: '0.76rem', color: 'var(--amber)', fontWeight: 600, marginBottom: 4 }}>
-                        🏢 {order.customer.businessName}
-                      </div>
-                    )}
-
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                      📍 {order.customer.address}, {order.customer.city} ({order.customer.pincode})
-                    </div>
-
-                    {order.transportName && (
-                      <div style={{ fontSize: '0.74rem', color: '#60a5fa', marginTop: 4 }}>
-                        🚚 Transport: {order.transportName}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Ordered Items Table */}
-                  <div>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>
-                      Ordered Sets ({order.totalUnits} Total Units)
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {order.items.map((it, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            fontSize: '0.8rem',
-                            borderBottom: '1px dashed rgba(255,255,255,0.05)',
-                            paddingBottom: 4,
-                          }}
-                        >
-                          <div>
-                            <span style={{ color: '#fff', fontWeight: 600 }}>{it.modelName}</span>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                              {it.styleName} · {it.colorName}
-                            </div>
-                          </div>
-                          <span style={{ fontWeight: 800, color: 'var(--amber)' }}>
-                            × {it.quantity}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#fff' }}>
+                            {order.customer.name}
                           </span>
+                          {order.customer.businessName && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--amber)', fontWeight: 600 }}>
+                              🏢 {order.customer.businessName}
+                            </span>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                          <a
+                            href={`tel:${order.customer.phone}`}
+                            style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+                          >
+                            📞 {order.customer.phone}
+                          </a>
+                          <span>📍 {order.customer.city}</span>
+                          {order.customerEmail && (
+                            <span style={{ color: 'var(--text-muted)' }}>✉️ {order.customerEmail}</span>
+                          )}
+                        </div>
+
+                        {order.customer.address && (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.3, marginTop: 2 }}>
+                            {order.customer.address}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Items Overview */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          <span>ITEMS ({order.totalItems})</span>
+                          <span style={{ fontWeight: 700, color: 'var(--amber)' }}>TOTAL: {order.totalUnits} SETS</span>
+                        </div>
+
+                        {order.items.map((it, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              fontSize: '0.8rem',
+                              borderBottom: '1px dashed rgba(255,255,255,0.05)',
+                              paddingBottom: 4,
+                            }}
+                          >
+                            <div>
+                              <span style={{ color: '#fff', fontWeight: 600 }}>{it.modelName}</span>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                {it.styleName} · {it.colorName}
+                              </div>
+                            </div>
+                            <span style={{ fontWeight: 800, color: 'var(--amber)' }}>
+                              × {it.quantity}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
 
                   {/* Action Footer: Print Dispatch Slip */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 6 }}>
@@ -661,6 +720,181 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
                 </div>
               );
             })}
+          </div>
+        )}
+          </>
+        ) : (
+          /* Customer Parties List */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 2 }}>
+              Registered dealer and customer accounts logged in via Google Authentication
+            </div>
+            {filteredCustomers.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  background: 'var(--surface)',
+                  borderRadius: 14,
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: 8, opacity: 0.5 }}>👥</div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>No customer parties found.</p>
+              </div>
+            ) : (
+              filteredCustomers.map(customer => {
+                const customerOrders = orders.filter(
+                  o =>
+                    (o.customerEmail && o.customerEmail.toLowerCase() === (customer.email || '').toLowerCase()) ||
+                    (o.customerUid && o.customerUid === customer.uid)
+                );
+                const totalCustomerUnits = customerOrders.reduce((s, o) => s + o.totalUnits, 0);
+
+                return (
+                  <div
+                    key={customer.uid}
+                    style={{
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 16,
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: '50%',
+                            background: 'rgba(245,158,11,0.15)',
+                            border: '1px solid var(--amber)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.2rem',
+                            color: 'var(--amber)',
+                            fontWeight: 800,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {customer.photoURL ? (
+                            <img
+                              src={customer.photoURL}
+                              alt="Avatar"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            customer.displayName?.charAt(0).toUpperCase() || '👤'
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff' }}>
+                            {customer.displayName || 'B2B Partner'}
+                          </div>
+                          <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                            {customer.email || 'No email'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: 8,
+                          background:
+                            customer.role === 'owner'
+                              ? 'rgba(245,158,11,0.18)'
+                              : 'rgba(59,130,246,0.15)',
+                          color: customer.role === 'owner' ? 'var(--amber)' : '#60a5fa',
+                          border:
+                            customer.role === 'owner'
+                              ? '1px solid rgba(245,158,11,0.4)'
+                              : '1px solid rgba(59,130,246,0.3)',
+                        }}
+                      >
+                        {customer.role === 'owner' ? '👑 Owner' : '🏢 Dealer'}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: 8,
+                        background: 'rgba(0,0,0,0.2)',
+                        borderRadius: 10,
+                        padding: '8px 10px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>Orders</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff' }}>
+                          {customerOrders.length}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>Sets</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--amber)' }}>
+                          {totalCustomerUnits}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>Last Active</div>
+                        <div
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            color: 'var(--text-secondary)',
+                            marginTop: 2,
+                          }}
+                        >
+                          {customer.lastLoginAt
+                            ? new Date(customer.lastLoginAt).toLocaleDateString('en-IN', {
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : 'Active'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {customerOrders.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setSearchQuery(customer.email || customer.displayName || '');
+                          setAdminTab('orders');
+                        }}
+                        style={{
+                          background: 'rgba(245,158,11,0.1)',
+                          border: '1px solid rgba(245,158,11,0.3)',
+                          borderRadius: 8,
+                          padding: '7px 12px',
+                          color: 'var(--amber)',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                        }}
+                      >
+                        Filter Orders by This Party ({customerOrders.length}) →
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </div>

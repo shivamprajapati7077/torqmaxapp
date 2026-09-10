@@ -34,10 +34,10 @@ const CartIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
-const AboutIcon = ({ active }: { active: boolean }) => (
+const AccountIcon = ({ active }: { active: boolean }) => (
   <svg viewBox="0 0 24 24" fill={active ? AMBER : 'none'} stroke={active ? AMBER : MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="4" />
-    <path d="M6 20v-1a6 6 0 0112 0v1" />
+    <circle cx="12" cy="7" r="4" />
+    <path d="M5.5 21a8.38 8.38 0 0113 0" />
   </svg>
 );
 
@@ -54,7 +54,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
     { id: 'home',     label: 'Home',     Icon: HomeIcon },
     { id: 'products', label: 'Mats',     Icon: ProductsIcon },
     { id: 'cart',     label: 'Cart',     Icon: CartIcon },
-    { id: 'about',    label: 'About',    Icon: AboutIcon },
+    { id: 'account',  label: 'Account',  Icon: AccountIcon },
     { id: 'contact',  label: 'Contact',  Icon: ContactIcon },
   ];
 

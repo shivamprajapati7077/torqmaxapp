@@ -67,6 +67,7 @@ export interface AdminUser {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  uid?: string;
 }
 
 /**
@@ -76,13 +77,37 @@ export const subscribeToAuthChanges = (
   callback: (user: AdminUser | null) => void,
 ): (() => void) => {
   if (isFirebaseConfigured && auth) {
-    return onAuthStateChanged(auth, firebaseUser => {
+    return onAuthStateChanged(auth, async firebaseUser => {
       if (firebaseUser) {
-        callback({
+        const isOwner = (firebaseUser.email || '').toLowerCase() === OWNER_EMAIL.toLowerCase();
+        const userData: AdminUser = {
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
-        });
+          uid: firebaseUser.uid,
+        };
+
+        // Sync customer record to Firestore in background
+        if (db) {
+          try {
+            await setDoc(
+              doc(db, 'customers', firebaseUser.uid),
+              {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL,
+                role: isOwner ? 'owner' : 'customer',
+                lastSeenAt: new Date().toISOString(),
+              },
+              { merge: true },
+            );
+          } catch (syncErr) {
+            console.warn('Customer record sync notice:', syncErr);
+          }
+        }
+
+        callback(userData);
       } else {
         callback(getSavedAuthUser());
       }
@@ -95,9 +120,8 @@ export const subscribeToAuthChanges = (
 
 /**
  * Sign in with Google.
- * Attempts Firebase GoogleAuthProvider popup.
- * If Firebase Google Auth has not been enabled in console yet or popup is blocked,
- * offers seamless owner verification mode so you are never locked out.
+ * Uses Firebase GoogleAuthProvider popup.
+ * Automatically saves customer profile to Firestore 'customers' collection.
  */
 export const signInWithGoogle = async (): Promise<{
   user: AdminUser;
@@ -106,41 +130,86 @@ export const signInWithGoogle = async (): Promise<{
   if (isFirebaseConfigured && auth && googleProvider) {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const email = result.user.email;
-      const isOwner = email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
-      const user = {
+      const email = result.user.email || '';
+      const isOwner = email.toLowerCase() === OWNER_EMAIL.toLowerCase();
+      const user: AdminUser = {
         email: result.user.email,
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
+        uid: result.user.uid,
       };
+
+      // Save customer record to Firestore
+      if (db) {
+        try {
+          await setDoc(
+            doc(db, 'customers', result.user.uid),
+            {
+              uid: result.user.uid,
+              email: result.user.email,
+              displayName: result.user.displayName,
+              photoURL: result.user.photoURL,
+              role: isOwner ? 'owner' : 'customer',
+              lastLoginAt: new Date().toISOString(),
+            },
+            { merge: true },
+          );
+        } catch (dbErr) {
+          console.warn('Firestore customer save notice:', dbErr);
+        }
+      }
+
       if (isOwner) {
         localStorage.setItem('torqmax_demo_auth', JSON.stringify(user));
       }
       return { user, isOwner };
     } catch (popupErr: any) {
       console.warn('Google Sign-In Popup notice:', popupErr);
-      // If error is configuration related (e.g. auth/operation-not-allowed or unauthorized domain),
-      // allow owner bypass with OWNER_EMAIL so work continues seamlessly.
+      
+      // If user closed the popup deliberately, propagate the cancel
+      if (
+        popupErr.code === 'auth/popup-closed-by-user' ||
+        popupErr.code === 'auth/cancelled-popup-request'
+      ) {
+        throw popupErr;
+      }
+
+      // If Google Auth provider isn't enabled in Firebase Console yet
+      if (popupErr.code === 'auth/operation-not-allowed') {
+        alert(
+          'Firebase Setup Notice:\n\nGoogle Sign-In is not enabled yet in your Firebase Console.\n\nPlease go to Firebase Console > Authentication > Sign-in method and click "Enable" on Google.'
+        );
+      }
+
+      // Seamless fallback prompt so customer/owner is never blocked
+      const promptedName = window.prompt(
+        'Google sign-in popup was blocked or Firebase is configuring.\nEnter your name to continue testing as customer:',
+        'Customer Partner'
+      );
+      if (!promptedName) throw popupErr;
+
+      const customerEmail =
+        promptedName.toLowerCase().replace(/\s+/g, '') + '@partner.torqmax.com';
       const fallbackUser: AdminUser = {
-        email: OWNER_EMAIL,
-        displayName: 'TorqMax Administrator',
+        email: customerEmail,
+        displayName: promptedName,
         photoURL: null,
+        uid: 'cust_' + Date.now(),
       };
-      localStorage.setItem('torqmax_demo_auth', JSON.stringify(fallbackUser));
-      return { user: fallbackUser, isOwner: true };
+      return { user: fallbackUser, isOwner: false };
     }
   }
 
-  // Demo / local preview mode
-  const demoUser: AdminUser = {
-    email: OWNER_EMAIL,
-    displayName: 'TorqMax Owner',
+  // Local fallback mode
+  const defaultUser: AdminUser = {
+    email: 'dealer@torqmax.com',
+    displayName: 'B2B Partner',
     photoURL: null,
+    uid: 'local_partner',
   };
-  localStorage.setItem('torqmax_demo_auth', JSON.stringify(demoUser));
   return {
-    user: demoUser,
-    isOwner: true,
+    user: defaultUser,
+    isOwner: false,
   };
 };
 
@@ -223,4 +292,34 @@ export const updateOrderStatus = async (
   }
 
   return updatedList;
+};
+
+export interface RegisteredCustomer {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  role: 'owner' | 'customer';
+  lastLoginAt?: string;
+  lastSeenAt?: string;
+}
+
+/**
+ * Fetch all registered customers from Firestore
+ */
+export const fetchRegisteredCustomers = async (): Promise<RegisteredCustomer[]> => {
+  if (isFirebaseConfigured && db) {
+    try {
+      const q = query(collection(db, 'customers'));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const list: RegisteredCustomer[] = [];
+        snapshot.forEach(d => list.push(d.data() as RegisteredCustomer));
+        return list;
+      }
+    } catch (err) {
+      console.warn('Firestore fetchRegisteredCustomers notice:', err);
+    }
+  }
+  return [];
 };

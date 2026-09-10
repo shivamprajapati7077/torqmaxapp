@@ -80,8 +80,8 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           tag_name: android-latest
-          name: "TorqMax Android App v1.1"
-          body: "Official latest build of TorqMax Android App with B2B Cart and Address Dispatch.\n\n- Cart-based ordering (WhatsApp button removed from Mats page, now on Cart)\n- Full Delivery Address modal prior to WhatsApp dispatch\n- Persistent cart & customer data"
+          name: "TorqMax Android App v1.2"
+          body: "Official latest build of TorqMax Android App with Customer Authentication & Owner Console.\n\n- Customer Google Authentication before WhatsApp dispatch\n- In-app customer order history and real-time status tracking\n- Owner Console with customer parties list, live dispatch statuses & print slips"
           files: |
             ./TorqMax-Android.apk
             ./dist/app-debug.apk

@@ -3,6 +3,8 @@ import { AppHeader } from '../components/AppHeader';
 import { useCart } from '../context/CartContext';
 import { PRICING_BY_CATEGORY } from '../data/vehicleModels';
 import { DispatchOrderModal } from '../components/DispatchOrderModal';
+import { AuthModal } from '../components/AuthModal';
+import { useAuth } from '../context/AuthContext';
 import type { Tab } from '../App';
 
 interface CartScreenProps {
@@ -11,7 +13,9 @@ interface CartScreenProps {
 
 export const CartScreen: React.FC<CartScreenProps> = ({ setActiveTab }) => {
   const { items, updateQuantity, removeItem, clearCart, totalItems, totalUnits } = useCart();
+  const { user } = useAuth();
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Calculate total order value (MRP)
   const totalEstimatedMrp = useMemo(() => {
@@ -23,6 +27,11 @@ export const CartScreen: React.FC<CartScreenProps> = ({ setActiveTab }) => {
 
   const handleOpenDispatch = () => {
     if (items.length === 0) return;
+    // Customer must be logged in to proceed with purchasing/ordering
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setIsDispatchModalOpen(true);
   };
 
@@ -96,6 +105,66 @@ export const CartScreen: React.FC<CartScreenProps> = ({ setActiveTab }) => {
                 }}
               >
                 <span>+</span> Add Models
+              </button>
+            )}
+          </div>
+
+          {/* User Sign-In Status Bar in Cart */}
+          <div
+            style={{
+              marginTop: 14,
+              padding: '10px 14px',
+              borderRadius: 12,
+              background: user ? 'rgba(34, 197, 94, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+              border: user ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid rgba(245, 158, 11, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}
+          >
+            {user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                <span style={{ fontSize: '0.9rem' }}>👤</span>
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {user.displayName || user.email}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#4ade80' }}>
+                    ✓ Logged In Partner
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '0.9rem' }}>🔒</span>
+                <div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff' }}>
+                    Login to complete bulk order
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--amber)' }}>
+                    Google account required to dispatch
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!user && (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                style={{
+                  background: 'var(--amber)',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '6px 12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                Sign In
               </button>
             )}
           </div>
@@ -511,6 +580,15 @@ export const CartScreen: React.FC<CartScreenProps> = ({ setActiveTab }) => {
           </button>
         </div>
       )}
+
+      {/* Customer Login Gate Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => setIsDispatchModalOpen(true)}
+        title="Sign In to Complete Order"
+        subtitle="Sign in with your Google account to record your purchase history and proceed with your bulk dispatch."
+      />
 
       {/* Dispatch Order Modal */}
       <DispatchOrderModal

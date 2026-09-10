@@ -26,6 +26,8 @@ export interface DispatchOrder {
   id: string; // e.g. TQM-1009-0001
   createdAt: string; // ISO string
   customer: OrderCustomer;
+  customerEmail?: string;
+  customerUid?: string;
   items: OrderItem[];
   totalItems: number;
   totalUnits: number;
