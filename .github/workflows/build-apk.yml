@@ -74,3 +74,17 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+
+      - name: Update GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: android-latest
+          name: "TorqMax Android App v1.1"
+          body: "Official latest build of TorqMax Android App with B2B Cart and Address Dispatch.\n\n- Cart-based ordering (WhatsApp button removed from Mats page, now on Cart)\n- Full Delivery Address modal prior to WhatsApp dispatch\n- Persistent cart & customer data"
+          files: |
+            ./TorqMax-Android.apk
+            ./dist/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
