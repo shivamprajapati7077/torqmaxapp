@@ -1,5 +1,5 @@
 // TorqMax Auto Accessories Service Worker (PWA)
-const CACHE_NAME = 'torqmax-v4-network-first';
+const CACHE_NAME = 'torqmax-v5-auth';
 
 // If on localhost or local dev, immediately delete all caches and unregister
 if (
