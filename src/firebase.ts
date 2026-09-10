@@ -139,10 +139,13 @@ export const signInWithGoogle = async (): Promise<{
         uid: result.user.uid,
       };
 
-      // Save customer record to Firestore
+      // Non-blocking background Firestore sync with 2.5s safety timeout
       if (db) {
-        try {
-          await setDoc(
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Firestore timeout')), 2500),
+        );
+        Promise.race([
+          setDoc(
             doc(db, 'customers', result.user.uid),
             {
               uid: result.user.uid,
@@ -153,10 +156,11 @@ export const signInWithGoogle = async (): Promise<{
               lastLoginAt: new Date().toISOString(),
             },
             { merge: true },
-          );
-        } catch (dbErr) {
-          console.warn('Firestore customer save notice:', dbErr);
-        }
+          ),
+          timeoutPromise,
+        ]).catch(dbErr => {
+          console.warn('Firestore customer save notice (background):', dbErr);
+        });
       }
 
       if (isOwner) {
@@ -165,38 +169,7 @@ export const signInWithGoogle = async (): Promise<{
       return { user, isOwner };
     } catch (popupErr: any) {
       console.warn('Google Sign-In Popup notice:', popupErr);
-      
-      // If user closed the popup deliberately, propagate the cancel
-      if (
-        popupErr.code === 'auth/popup-closed-by-user' ||
-        popupErr.code === 'auth/cancelled-popup-request'
-      ) {
-        throw popupErr;
-      }
-
-      // If Google Auth provider isn't enabled in Firebase Console yet
-      if (popupErr.code === 'auth/operation-not-allowed') {
-        alert(
-          'Firebase Setup Notice:\n\nGoogle Sign-In is not enabled yet in your Firebase Console.\n\nPlease go to Firebase Console > Authentication > Sign-in method and click "Enable" on Google.'
-        );
-      }
-
-      // Seamless fallback prompt so customer/owner is never blocked
-      const promptedName = window.prompt(
-        'Google sign-in popup was blocked or Firebase is configuring.\nEnter your name to continue testing as customer:',
-        'Customer Partner'
-      );
-      if (!promptedName) throw popupErr;
-
-      const customerEmail =
-        promptedName.toLowerCase().replace(/\s+/g, '') + '@partner.torqmax.com';
-      const fallbackUser: AdminUser = {
-        email: customerEmail,
-        displayName: promptedName,
-        photoURL: null,
-        uid: 'cust_' + Date.now(),
-      };
-      return { user: fallbackUser, isOwner: false };
+      throw popupErr;
     }
   }
 
@@ -237,37 +210,54 @@ export const getSavedAuthUser = (): AdminUser | null => {
  * Save an order to both Firestore (if available) and localStorage
  */
 export const recordDispatchOrder = async (order: DispatchOrder): Promise<void> => {
-  // Always persist locally
+  // Always persist locally first so order is immediately secure
   saveLocalOrder(order);
 
   if (isFirebaseConfigured && db) {
     try {
       const orderRef = doc(db, 'orders', order.id);
-      await setDoc(orderRef, order);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Firestore timeout')), 2500),
+      );
+      await Promise.race([setDoc(orderRef, order), timeoutPromise]);
     } catch (err) {
-      console.warn('Could not sync order to Firestore (using local storage):', err);
+      console.warn('Could not sync order to Firestore (stored safely locally):', err);
     }
   }
 };
 
 /**
- * Fetch all orders from Firestore (falling back to localStorage)
+ * Fetch all orders from Firestore, merged with local storage so no orders are ever missed
  */
 export const fetchDispatchOrders = async (): Promise<DispatchOrder[]> => {
+  const localOrders = getLocalOrders();
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Firestore timeout')), 2500),
+      );
+      const snapshot = await Promise.race([getDocs(q), timeoutPromise]);
       if (!snapshot.empty) {
-        const orders: DispatchOrder[] = [];
-        snapshot.forEach(d => orders.push(d.data() as DispatchOrder));
-        return orders;
+        const firestoreOrders: DispatchOrder[] = [];
+        snapshot.forEach(d => firestoreOrders.push(d.data() as DispatchOrder));
+
+        // Merge orders by ID so both cloud & local orders are completely preserved
+        const mergedMap = new Map<string, DispatchOrder>();
+        firestoreOrders.forEach(o => mergedMap.set(o.id, o));
+        localOrders.forEach(o => {
+          if (!mergedMap.has(o.id)) mergedMap.set(o.id, o);
+        });
+
+        return Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
       }
     } catch (err) {
-      console.warn('Firestore fetch failed, loading local orders:', err);
+      console.warn('Firestore fetch notice (using local orders):', err);
     }
   }
-  return getLocalOrders();
+  return localOrders;
 };
 
 /**
@@ -282,10 +272,16 @@ export const updateOrderStatus = async (
   if (isFirebaseConfigured && db) {
     try {
       const orderRef = doc(db, 'orders', orderId);
-      await updateDoc(orderRef, {
-        status,
-        dispatchDate: status === 'dispatched' ? new Date().toISOString() : undefined,
-      });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Firestore timeout')), 2500),
+      );
+      await Promise.race([
+        updateDoc(orderRef, {
+          status,
+          dispatchDate: status === 'dispatched' ? new Date().toISOString() : undefined,
+        }),
+        timeoutPromise,
+      ]);
     } catch (err) {
       console.warn('Failed to update status in Firestore:', err);
     }
@@ -298,6 +294,7 @@ export interface RegisteredCustomer {
   uid: string;
   email: string | null;
   displayName: string | null;
+  phone?: string | null;
   photoURL: string | null;
   role: 'owner' | 'customer';
   lastLoginAt?: string;
@@ -311,7 +308,10 @@ export const fetchRegisteredCustomers = async (): Promise<RegisteredCustomer[]> 
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'customers'));
-      const snapshot = await getDocs(q);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Firestore timeout')), 2500),
+      );
+      const snapshot = await Promise.race([getDocs(q), timeoutPromise]);
       if (!snapshot.empty) {
         const list: RegisteredCustomer[] = [];
         snapshot.forEach(d => list.push(d.data() as RegisteredCustomer));

@@ -88,6 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(appUser);
       localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(appUser));
+      if (isOwner) {
+        localStorage.setItem('torqmax_demo_auth', JSON.stringify(appUser));
+      }
       setIsLoading(false);
       return appUser;
     } catch (err) {
@@ -116,10 +119,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isOwner,
       };
 
-      // Sync to Firestore
+      // Set user session IMMEDIATELY so UI never hangs on 'Signing In...'
+      setUser(appUser);
+      localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(appUser));
+      if (isOwner) {
+        localStorage.setItem('torqmax_demo_auth', JSON.stringify(appUser));
+      }
+      setIsLoading(false);
+
+      // Non-blocking background Firestore sync with 2.5s safety timeout
       if (db) {
-        try {
-          await setDoc(
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Firestore timeout')), 2500),
+        );
+        Promise.race([
+          setDoc(
             doc(db, 'customers', uid),
             {
               uid,
@@ -130,18 +144,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               lastLoginAt: new Date().toISOString(),
             },
             { merge: true },
-          );
-        } catch (dbErr) {
-          console.warn('Firestore direct user sync notice:', dbErr);
-        }
+          ),
+          timeoutPromise,
+        ]).catch(dbErr => {
+          console.warn('Firestore direct user sync notice (background):', dbErr);
+        });
       }
 
-      setUser(appUser);
-      localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(appUser));
-      if (isOwner) {
-        localStorage.setItem('torqmax_demo_auth', JSON.stringify(appUser));
-      }
-      setIsLoading(false);
       return appUser;
     } catch (err) {
       setIsLoading(false);

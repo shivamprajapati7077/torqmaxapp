@@ -19,8 +19,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   subtitle = 'Connect with your Google account to confirm your order and track live dispatch statuses.',
 }) => {
   const { loginWithGoogle, loginDirectly, isLoading } = useAuth();
-  const [emailInput, setEmailInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
+  const [emailInput, setEmailInput] = useState(() => {
+    try {
+      return localStorage.getItem('torqmax_last_email') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [nameInput, setNameInput] = useState(() => {
+    try {
+      return localStorage.getItem('torqmax_last_name') || '';
+    } catch {
+      return '';
+    }
+  });
   const [pinInput, setPinInput] = useState('');
   const [error, setError] = useState('');
 
@@ -47,6 +59,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     try {
+      // Remember details locally for customer convenience
+      try {
+        localStorage.setItem('torqmax_last_email', cleanEmail);
+        if (nameInput.trim()) localStorage.setItem('torqmax_last_name', nameInput.trim());
+      } catch {
+        // ignore
+      }
+
       await loginDirectly(cleanEmail, nameInput.trim());
       onSuccess?.();
       onClose();
@@ -332,6 +352,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {isLoading ? 'Signing In...' : isOwnerTyping ? 'Sign In as Owner →' : 'Sign In as Partner →'}
           </button>
         </form>
+
+        {/* Quick Owner Access Link */}
+        <div style={{ marginTop: 8 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setEmailInput(OWNER_EMAIL);
+              setNameInput('TorqMax Owner');
+              setPinInput('7077');
+              setError('');
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--amber)',
+              fontSize: '0.74rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              padding: '4px',
+              opacity: 0.85,
+            }}
+          >
+            👑 TorqMax Owner? Click for 1-Tap Login
+          </button>
+        </div>
 
         {/* Web Browser Google Popup Option (Hidden on Android APK to prevent blank WebView) */}
         {!isNative ? (
