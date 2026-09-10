@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   auth,
+  db,
   isFirebaseConfigured,
   OWNER_EMAIL,
   signInWithGoogle as firebaseSignInWithGoogle,
   signOutAdmin,
 } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 export interface AppUser {
   email: string | null;
@@ -21,6 +23,7 @@ interface AuthContextValue {
   isLoading: boolean;
   isOwner: boolean;
   loginWithGoogle: () => Promise<AppUser>;
+  loginDirectly: (email: string, displayName: string, phone?: string) => Promise<AppUser>;
   logout: () => Promise<void>;
 }
 
@@ -93,6 +96,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginDirectly = async (
+    email: string,
+    displayName: string,
+    phone?: string,
+  ): Promise<AppUser> => {
+    setIsLoading(true);
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const isOwner = cleanEmail === OWNER_EMAIL.toLowerCase();
+      const cleanName = displayName.trim() || (isOwner ? 'TorqMax Owner' : 'B2B Partner');
+      const uid = 'usr_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+
+      const appUser: AppUser = {
+        email: cleanEmail,
+        displayName: cleanName,
+        photoURL: null,
+        uid,
+        isOwner,
+      };
+
+      // Sync to Firestore
+      if (db) {
+        try {
+          await setDoc(
+            doc(db, 'customers', uid),
+            {
+              uid,
+              email: cleanEmail,
+              displayName: cleanName,
+              phone: phone || null,
+              role: isOwner ? 'owner' : 'customer',
+              lastLoginAt: new Date().toISOString(),
+            },
+            { merge: true },
+          );
+        } catch (dbErr) {
+          console.warn('Firestore direct user sync notice:', dbErr);
+        }
+      }
+
+      setUser(appUser);
+      localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(appUser));
+      if (isOwner) {
+        localStorage.setItem('torqmax_demo_auth', JSON.stringify(appUser));
+      }
+      setIsLoading(false);
+      return appUser;
+    } catch (err) {
+      setIsLoading(false);
+      throw err;
+    }
+  };
+
   const logout = async () => {
     await signOutAdmin();
     localStorage.removeItem(CUSTOMER_AUTH_KEY);
@@ -102,7 +158,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isOwner = Boolean(user?.isOwner);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isOwner, loginWithGoogle, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, isOwner, loginWithGoogle, loginDirectly, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
