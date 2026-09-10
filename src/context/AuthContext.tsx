@@ -6,6 +6,7 @@ import {
   OWNER_EMAIL,
   signInWithGoogle as firebaseSignInWithGoogle,
   signOutAdmin,
+  saveRegisteredPartyLocally,
 } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -86,6 +87,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uid: res.user.uid,
         isOwner,
       };
+      saveRegisteredPartyLocally({
+        uid: res.user.uid || 'usr_' + (res.user.email || 'guest').replace(/[^a-zA-Z0-9]/g, '_'),
+        email: res.user.email,
+        displayName: res.user.displayName || 'B2B Partner',
+        photoURL: res.user.photoURL,
+        role: isOwner ? 'owner' : 'customer',
+        lastLoginAt: new Date().toISOString(),
+        lastSeenAt: new Date().toISOString(),
+      });
+
       setUser(appUser);
       localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(appUser));
       if (isOwner) {
@@ -118,6 +129,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uid,
         isOwner,
       };
+
+      // Save to local parties registry so party is immediately visible to owner
+      saveRegisteredPartyLocally({
+        uid,
+        email: cleanEmail,
+        displayName: cleanName,
+        phone: phone || null,
+        photoURL: null,
+        role: isOwner ? 'owner' : 'customer',
+        lastLoginAt: new Date().toISOString(),
+        lastSeenAt: new Date().toISOString(),
+      });
 
       // Set user session IMMEDIATELY so UI never hangs on 'Signing In...'
       setUser(appUser);

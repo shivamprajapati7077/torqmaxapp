@@ -206,12 +206,82 @@ export const getSavedAuthUser = (): AdminUser | null => {
   }
 };
 
+const PARTIES_STORAGE_KEY = 'torqmax_registered_parties_v2';
+
+export interface RegisteredCustomer {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  phone?: string | null;
+  city?: string | null;
+  state?: string | null;
+  businessName?: string | null;
+  photoURL: string | null;
+  role: 'owner' | 'customer';
+  lastLoginAt?: string;
+  lastSeenAt?: string;
+}
+
+export const getLocalRegisteredParties = (): RegisteredCustomer[] => {
+  try {
+    const raw = localStorage.getItem(PARTIES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveRegisteredPartyLocally = (party: RegisteredCustomer): void => {
+  try {
+    const list = getLocalRegisteredParties();
+    const cleanEmail = (party.email || '').toLowerCase().trim();
+    const cleanPhone = (party.phone || '').replace(/\D/g, '');
+    const existingIdx = list.findIndex(
+      p =>
+        (cleanEmail && (p.email || '').toLowerCase().trim() === cleanEmail) ||
+        (cleanPhone && (p.phone || '').replace(/\D/g, '') === cleanPhone) ||
+        p.uid === party.uid,
+    );
+    if (existingIdx >= 0) {
+      list[existingIdx] = { ...list[existingIdx], ...party };
+    } else {
+      list.push(party);
+    }
+    localStorage.setItem(PARTIES_STORAGE_KEY, JSON.stringify(list));
+  } catch (err) {
+    console.warn('Failed to save party locally:', err);
+  }
+};
+
 /**
  * Save an order to both Firestore (if available) and localStorage
  */
 export const recordDispatchOrder = async (order: DispatchOrder): Promise<void> => {
   // Always persist locally first so order is immediately secure
   saveLocalOrder(order);
+
+  // Extract customer party to local parties registry
+  if (order.customer) {
+    const partyName =
+      order.customer.businessName?.trim() ||
+      order.customer.name?.trim() ||
+      'B2B Partner';
+    const email = order.customerEmail || null;
+    const phone = order.customer.phone || null;
+    saveRegisteredPartyLocally({
+      uid: order.customerUid || 'party_' + ((phone || '').replace(/\D/g, '') || order.id),
+      email,
+      displayName: partyName,
+      businessName: order.customer.businessName || null,
+      phone,
+      city: order.customer.city || null,
+      state: order.customer.state || null,
+      photoURL: null,
+      role: (email || '').toLowerCase() === OWNER_EMAIL.toLowerCase() ? 'owner' : 'customer',
+      lastLoginAt: order.createdAt,
+      lastSeenAt: order.createdAt,
+    });
+  }
 
   if (isFirebaseConfigured && db) {
     try {
@@ -290,21 +360,79 @@ export const updateOrderStatus = async (
   return updatedList;
 };
 
-export interface RegisteredCustomer {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  phone?: string | null;
-  photoURL: string | null;
-  role: 'owner' | 'customer';
-  lastLoginAt?: string;
-  lastSeenAt?: string;
-}
-
 /**
- * Fetch all registered customers from Firestore
+ * Fetch all registered customers and B2B parties from Firestore, local registry, and orders
  */
-export const fetchRegisteredCustomers = async (): Promise<RegisteredCustomer[]> => {
+export const fetchRegisteredCustomers = async (
+  currentOrders?: DispatchOrder[],
+): Promise<RegisteredCustomer[]> => {
+  const mergedMap = new Map<string, RegisteredCustomer>();
+
+  // 1. Load locally registered parties
+  const localParties = getLocalRegisteredParties();
+  localParties.forEach(p => {
+    const key = (p.email || p.phone || p.uid).toLowerCase().trim();
+    mergedMap.set(key, p);
+  });
+
+  // 2. Extract customer parties from all orders (so every customer who placed an order is visible!)
+  const orders = currentOrders || getLocalOrders();
+  orders.forEach(o => {
+    if (!o.customer) return;
+    const email = (o.customerEmail || '').toLowerCase().trim();
+    const phone = (o.customer.phone || '').replace(/\D/g, '');
+    const key = email || phone || o.id;
+    const existing = mergedMap.get(key);
+
+    const displayName =
+      o.customer.businessName?.trim() ||
+      o.customer.name?.trim() ||
+      existing?.displayName ||
+      'B2B Partner';
+
+    const partyData: RegisteredCustomer = {
+      uid: existing?.uid || o.customerUid || 'party_' + (phone || o.id),
+      email: email || existing?.email || null,
+      displayName,
+      businessName: o.customer.businessName || existing?.businessName || null,
+      phone: o.customer.phone || existing?.phone || null,
+      city: o.customer.city || existing?.city || null,
+      state: o.customer.state || existing?.state || null,
+      photoURL: existing?.photoURL || null,
+      role: email === OWNER_EMAIL.toLowerCase() ? 'owner' : 'customer',
+      lastLoginAt: o.createdAt || existing?.lastLoginAt,
+      lastSeenAt: o.createdAt || existing?.lastSeenAt,
+    };
+    mergedMap.set(key, partyData);
+  });
+
+  // 3. Include current logged in user from localStorage if present
+  try {
+    const currentRaw = localStorage.getItem('torqmax_customer_auth_user');
+    if (currentRaw) {
+      const cu = JSON.parse(currentRaw);
+      if (cu?.email) {
+        const key = cu.email.toLowerCase().trim();
+        const existing = mergedMap.get(key);
+        mergedMap.set(key, {
+          uid: cu.uid || existing?.uid || 'usr_' + key.replace(/[^a-zA-Z0-9]/g, '_'),
+          email: cu.email,
+          displayName: cu.displayName || existing?.displayName || 'B2B Partner',
+          phone: cu.phone || existing?.phone || null,
+          city: existing?.city || null,
+          state: existing?.state || null,
+          photoURL: cu.photoURL || existing?.photoURL || null,
+          role: cu.isOwner ? 'owner' : 'customer',
+          lastLoginAt: new Date().toISOString(),
+          lastSeenAt: new Date().toISOString(),
+        });
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // 4. Try Firestore if configured
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'customers'));
@@ -313,13 +441,16 @@ export const fetchRegisteredCustomers = async (): Promise<RegisteredCustomer[]> 
       );
       const snapshot = await Promise.race([getDocs(q), timeoutPromise]);
       if (!snapshot.empty) {
-        const list: RegisteredCustomer[] = [];
-        snapshot.forEach(d => list.push(d.data() as RegisteredCustomer));
-        return list;
+        snapshot.forEach(d => {
+          const data = d.data() as RegisteredCustomer;
+          const key = (data.email || data.phone || data.uid).toLowerCase().trim();
+          mergedMap.set(key, { ...mergedMap.get(key), ...data });
+        });
       }
     } catch (err) {
       console.warn('Firestore fetchRegisteredCustomers notice:', err);
     }
   }
-  return [];
+
+  return Array.from(mergedMap.values());
 };

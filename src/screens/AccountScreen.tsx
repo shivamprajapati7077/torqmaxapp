@@ -24,15 +24,29 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({ setActiveTab }) =>
         const all = await fetchDispatchOrders();
         if (isMounted) {
           if (user) {
-            // Filter orders for this customer (by email, uid, or saved customer phone)
-            const userEmail = (user.email || '').toLowerCase();
+            // Filter orders strictly for this customer (by email or uid)
+            const userEmail = (user.email || '').toLowerCase().trim();
+            const userUid = user.uid || '';
+            let savedPhone = '';
+            try {
+              const rawCust = localStorage.getItem('torqmax_saved_customer_v1');
+              if (rawCust) {
+                const parsed = JSON.parse(rawCust);
+                savedPhone = (parsed.phone || '').replace(/\D/g, '');
+              }
+            } catch {
+              // ignore
+            }
+
             const filtered = all.filter(o => {
-              if (o.customerEmail && o.customerEmail.toLowerCase() === userEmail) return true;
-              if (o.customerUid && user.uid && o.customerUid === user.uid) return true;
-              return false;
+              const matchEmail = Boolean(userEmail && o.customerEmail && o.customerEmail.toLowerCase().trim() === userEmail);
+              const matchUid = Boolean(userUid && o.customerUid && o.customerUid === userUid);
+              const matchPhone = Boolean(savedPhone && o.customer?.phone && o.customer.phone.replace(/\D/g, '').includes(savedPhone));
+              return matchEmail || matchUid || matchPhone;
             });
-            // If none matched yet by email (e.g. placed before logging in), show recent local orders
-            setOrders(filtered.length > 0 ? filtered : all.slice(0, 5));
+
+            // Only display this customer's actual orders (never show dummy orders)
+            setOrders(filtered);
           } else {
             setOrders([]);
           }

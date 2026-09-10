@@ -38,10 +38,8 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
-      const [orderData, customerData] = await Promise.all([
-        fetchDispatchOrders(),
-        fetchRegisteredCustomers(),
-      ]);
+      const orderData = await fetchDispatchOrders();
+      const customerData = await fetchRegisteredCustomers(orderData);
       if (isMounted) {
         setOrders(orderData);
         setCustomers(customerData);
@@ -891,8 +889,13 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
                             {customer.displayName || 'B2B Partner'}
                           </div>
                           <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                            {customer.email || 'No email'}
+                            {customer.email || (customer.phone ? `📱 ${customer.phone}` : 'No email')}
                           </div>
+                          {customer.city && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--amber)', marginTop: 2 }}>
+                              📍 {customer.city}{customer.state ? `, ${customer.state}` : ''}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -952,13 +955,57 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
                         >
                           {customer.lastLoginAt
                             ? new Date(customer.lastLoginAt).toLocaleDateString('en-IN', {
+                                day: '2-digit',
                                 month: 'short',
-                                day: 'numeric',
                               })
                             : 'Active'}
                         </div>
                       </div>
                     </div>
+
+                    {/* Direct Contact Actions */}
+                    {customer.phone && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                        <a
+                          href={`https://wa.me/${customer.phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            background: 'rgba(37,211,102,0.12)',
+                            border: '1px solid rgba(37,211,102,0.35)',
+                            borderRadius: 8,
+                            padding: '6px 12px',
+                            color: '#25D366',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          💬 WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customer.phone}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: 8,
+                            padding: '6px 12px',
+                            color: '#fff',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          📞 Call
+                        </a>
+                      </div>
+                    )}
 
                     {customerOrders.length > 0 && (
                       <button
