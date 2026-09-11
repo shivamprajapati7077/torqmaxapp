@@ -946,7 +946,7 @@ export const ProductScreen: React.FC<ProductScreenProps> = ({ setActiveTab }) =>
                         </filter>
                       </defs>
 
-                      {/* ── Outer Raised Lip (18mm) ── */}
+                      {/* ── Outer Rim (EVA 2mm) ── */}
                       <path
                         d="M 48 18 C 85 12, 155 12, 192 18 C 215 45, 225 150, 200 200 C 165 212, 75 212, 40 200 C 15 150, 25 45, 48 18 Z"
                         fill={currentColor.primaryColor}
@@ -1037,7 +1037,7 @@ export const ProductScreen: React.FC<ProductScreenProps> = ({ setActiveTab }) =>
                     letterSpacing: '0.05em',
                   }}
                 >
-                  ● 18MM RAISED LIP
+                  ● EVA 2 MM MATERIAL
                 </div>
 
                 <div

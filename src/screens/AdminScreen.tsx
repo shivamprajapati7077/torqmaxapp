@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import {
   OWNER_EMAIL,
@@ -50,6 +51,102 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
       isMounted = false;
     };
   }, [currentUser]);
+
+  useEffect(() => {
+    if (selectedOrderForPrint) {
+      document.body.classList.add('has-print-modal');
+    } else {
+      document.body.classList.remove('has-print-modal');
+    }
+    return () => {
+      document.body.classList.remove('has-print-modal');
+    };
+  }, [selectedOrderForPrint]);
+
+  const handlePrintSlip = () => {
+    const slipEl = document.getElementById('printable-dispatch-slip');
+    if (!slipEl) {
+      window.print();
+      return;
+    }
+
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute(
+        'style',
+        'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;'
+      );
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document;
+      if (!doc) {
+        window.print();
+        return;
+      }
+
+      doc.open();
+      doc.write(`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>TorqMax_Dispatch_Slip_${selectedOrderForPrint?.id || 'Order'}</title>
+    <style>
+      @page {
+        size: A4 portrait;
+        margin: 10mm 12mm;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #ffffff;
+        color: #000000;
+        padding: 0;
+        margin: 0;
+      }
+      #printable-dispatch-slip {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+        overflow: visible !important;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    </style>
+  </head>
+  <body>
+    ${slipEl.outerHTML}
+  </body>
+</html>`);
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 2000);
+      }, 300);
+    } catch {
+      window.print();
+    }
+  };
 
   const handleLogin = async () => {
     if (isNative) {
@@ -694,21 +791,31 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
                           </div>
                         </div>
 
-                        {/* Interactive Status Pill */}
+                        {/* Interactive Status Selector */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span
+                          <select
+                            value={order.status}
+                            onChange={e => handleStatusChange(order.id, e.target.value as OrderStatus)}
+                            disabled={isUpdating}
+                            title="Click to change order status"
                             style={{
                               background: badge.bg,
                               color: badge.color,
-                              border: `1px solid ${badge.color}40`,
+                              border: `1.5px solid ${badge.color}60`,
                               borderRadius: 12,
-                              padding: '4px 10px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
+                              padding: '5px 12px',
+                              fontSize: '0.74rem',
+                              fontWeight: 800,
+                              cursor: isUpdating ? 'wait' : 'pointer',
+                              outline: 'none',
+                              boxShadow: `0 2px 8px ${badge.bg}`,
                             }}
                           >
-                            {badge.label}
-                          </span>
+                            <option value="new" style={{ background: '#12131A', color: '#facc15' }}>🟡 Order Received</option>
+                            <option value="confirmed" style={{ background: '#12131A', color: '#4ade80' }}>🟢 Confirmed</option>
+                            <option value="dispatched" style={{ background: '#12131A', color: '#60a5fa' }}>🔵 Order Dispatched</option>
+                            <option value="delivered" style={{ background: '#12131A', color: '#c084fc' }}>✅ Order Delivered</option>
+                          </select>
                         </div>
                       </div>
 
@@ -787,8 +894,74 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
                         ))}
                       </div>
 
-                  {/* Action Footer: Print Dispatch Slip */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 6 }}>
+                  {/* Action Footer: Status Progression & Print Dispatch Slip */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {order.status === 'new' && (
+                        <button
+                          onClick={() => handleStatusChange(order.id, 'dispatched')}
+                          disabled={isUpdating}
+                          style={{
+                            background: 'rgba(59,130,246,0.15)',
+                            border: '1px solid rgba(59,130,246,0.35)',
+                            borderRadius: 8,
+                            padding: '6px 12px',
+                            color: '#60a5fa',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          🔵 Mark Dispatched →
+                        </button>
+                      )}
+                      {order.status === 'confirmed' && (
+                        <button
+                          onClick={() => handleStatusChange(order.id, 'dispatched')}
+                          disabled={isUpdating}
+                          style={{
+                            background: 'rgba(59,130,246,0.15)',
+                            border: '1px solid rgba(59,130,246,0.35)',
+                            borderRadius: 8,
+                            padding: '6px 12px',
+                            color: '#60a5fa',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          🔵 Mark Dispatched →
+                        </button>
+                      )}
+                      {order.status === 'dispatched' && (
+                        <button
+                          onClick={() => handleStatusChange(order.id, 'delivered')}
+                          disabled={isUpdating}
+                          style={{
+                            background: 'rgba(168,85,247,0.15)',
+                            border: '1px solid rgba(168,85,247,0.35)',
+                            borderRadius: 8,
+                            padding: '6px 12px',
+                            color: '#c084fc',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          ✅ Mark Delivered →
+                        </button>
+                      )}
+                    </div>
+
                     <button
                       onClick={() => setSelectedOrderForPrint(order)}
                       style={{
@@ -1040,81 +1213,86 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
       </div>
 
       {/* ─── PRINT DISPATCH SLIP MODAL & PRINT VIEW ─── */}
-      {selectedOrderForPrint && (
-        <div
-          className="print-modal-backdrop"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 300,
-            background: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-        >
+      {selectedOrderForPrint &&
+        createPortal(
           <div
+            className="print-modal-backdrop"
             style={{
-              width: '100%',
-              maxWidth: 620,
-              maxHeight: '92vh',
-              background: '#fff',
-              color: '#000',
-              borderRadius: 16,
-              overflow: 'hidden',
+              position: 'fixed',
+              inset: 0,
+              zIndex: 300,
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(10px)',
               display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setSelectedOrderForPrint(null);
             }}
           >
-            {/* Modal Actions Bar (hidden in print) */}
             <div
-              className="no-print"
+              className="print-modal-card"
               style={{
-                background: '#18181f',
-                padding: '12px 16px',
+                width: '100%',
+                maxWidth: 620,
+                maxHeight: '92vh',
+                background: '#fff',
+                color: '#000',
+                borderRadius: 16,
+                overflow: 'hidden',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                flexDirection: 'column',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
               }}
             >
-              <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>
-                Print Preview — {selectedOrderForPrint.id}
+              {/* Modal Actions Bar (hidden in print) */}
+              <div
+                className="no-print"
+                style={{
+                  background: '#18181f',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>
+                  Print Preview — {selectedOrderForPrint.id}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={handlePrintSlip}
+                    style={{
+                      background: 'var(--amber)',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '6px 14px',
+                      color: '#000',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🖨️ Print Now
+                  </button>
+                  <button
+                    onClick={() => setSelectedOrderForPrint(null)}
+                    style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '6px 12px',
+                      color: '#fff',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => window.print()}
-                  style={{
-                    background: 'var(--amber)',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '6px 14px',
-                    color: '#000',
-                    fontWeight: 800,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  🖨️ Print Now
-                </button>
-                <button
-                  onClick={() => setSelectedOrderForPrint(null)}
-                  style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '6px 12px',
-                    color: '#fff',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
 
             {/* Print Slip Content Document (styled for standard A4/A5 printer) */}
             <div
@@ -1287,7 +1465,8 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

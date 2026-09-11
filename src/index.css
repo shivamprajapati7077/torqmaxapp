@@ -504,29 +504,93 @@ html, body {
 
 /* ─── Print Styles for Dispatch Slip ─────────── */
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
   }
+
+  html, body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* When printing dispatch slip modal, hide the normal application */
+  body.has-print-modal #root,
+  body:has(.print-modal-backdrop) #root {
+    display: none !important;
+  }
+
   .no-print, .bottom-nav, header, .app-header {
     display: none !important;
   }
+
   .print-modal-backdrop {
     position: static !important;
+    display: block !important;
+    inset: auto !important;
     background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
+
+  .print-modal-card {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
     padding: 0 !important;
   }
-  #printable-dispatch-slip, #printable-dispatch-slip * {
-    visibility: visible;
-  }
+
   #printable-dispatch-slip {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 10mm 15mm !important;
-    background: #fff !important;
-    color: #000 !important;
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    page-break-inside: avoid;
+  }
+
+  #printable-dispatch-slip table {
+    width: 100% !important;
+    page-break-inside: auto;
+  }
+
+  #printable-dispatch-slip tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  #printable-dispatch-slip * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
 
