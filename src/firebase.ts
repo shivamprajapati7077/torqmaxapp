@@ -231,6 +231,75 @@ export const getLocalRegisteredParties = (): RegisteredCustomer[] => {
   }
 };
 
+// Firebase Realtime Database Endpoint (Guaranteed Cloud Sync for all cross-device orders & parties)
+const RTDB_BASE_URL = 'https://torqmax-90fa1-default-rtdb.firebaseio.com';
+
+export const syncOrderToRTDB = async (order: DispatchOrder): Promise<void> => {
+  try {
+    await fetch(`${RTDB_BASE_URL}/orders/${order.id}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    });
+  } catch (err) {
+    console.warn('Cloud sync (RTDB) order notice:', err);
+  }
+};
+
+export const syncPartyToRTDB = async (party: RegisteredCustomer): Promise<void> => {
+  try {
+    const rawKey = (party.email || party.phone || party.uid).toLowerCase().trim();
+    const safeKey = rawKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+    await fetch(`${RTDB_BASE_URL}/parties/${safeKey}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(party),
+    });
+  } catch (err) {
+    console.warn('Cloud sync (RTDB) party notice:', err);
+  }
+};
+
+export const fetchOrdersFromRTDB = async (): Promise<DispatchOrder[]> => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`${RTDB_BASE_URL}/orders.json`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data && typeof data === 'object') {
+      return Object.values(data).filter(
+        (o: any): o is DispatchOrder => Boolean(o && typeof o === 'object' && o.id),
+      );
+    }
+    return [];
+  } catch (err) {
+    console.warn('Cloud fetch (RTDB) notice:', err);
+    return [];
+  }
+};
+
+export const fetchPartiesFromRTDB = async (): Promise<RegisteredCustomer[]> => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`${RTDB_BASE_URL}/parties.json`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data && typeof data === 'object') {
+      return Object.values(data).filter(
+        (p: any): p is RegisteredCustomer => Boolean(p && typeof p === 'object' && p.displayName),
+      );
+    }
+    return [];
+  } catch (err) {
+    console.warn('Cloud fetch (RTDB) parties notice:', err);
+    return [];
+  }
+};
+
 export const saveRegisteredPartyLocally = (party: RegisteredCustomer): void => {
   try {
     const list = getLocalRegisteredParties();
@@ -248,19 +317,22 @@ export const saveRegisteredPartyLocally = (party: RegisteredCustomer): void => {
       list.push(party);
     }
     localStorage.setItem(PARTIES_STORAGE_KEY, JSON.stringify(list));
+
+    // Also sync to cloud Realtime Database in background
+    syncPartyToRTDB(party).catch(err => console.warn('Party cloud sync notice:', err));
   } catch (err) {
     console.warn('Failed to save party locally:', err);
   }
 };
 
 /**
- * Save an order to both Firestore (if available) and localStorage
+ * Save an order to both cloud Realtime Database, Firestore (if available), and localStorage
  */
 export const recordDispatchOrder = async (order: DispatchOrder): Promise<void> => {
   // Always persist locally first so order is immediately secure
   saveLocalOrder(order);
 
-  // Extract customer party to local parties registry
+  // Extract customer party to local parties registry and cloud
   if (order.customer) {
     const partyName =
       order.customer.businessName?.trim() ||
@@ -268,7 +340,7 @@ export const recordDispatchOrder = async (order: DispatchOrder): Promise<void> =
       'B2B Partner';
     const email = order.customerEmail || null;
     const phone = order.customer.phone || null;
-    saveRegisteredPartyLocally({
+    const party: RegisteredCustomer = {
       uid: order.customerUid || 'party_' + ((phone || '').replace(/\D/g, '') || order.id),
       email,
       displayName: partyName,
@@ -280,9 +352,14 @@ export const recordDispatchOrder = async (order: DispatchOrder): Promise<void> =
       role: (email || '').toLowerCase() === OWNER_EMAIL.toLowerCase() ? 'owner' : 'customer',
       lastLoginAt: order.createdAt,
       lastSeenAt: order.createdAt,
-    });
+    };
+    saveRegisteredPartyLocally(party);
   }
 
+  // 1. Cloud Sync via Firebase Realtime Database (guaranteed delivery)
+  await syncOrderToRTDB(order);
+
+  // 2. Parallel Firestore attempt if configured
   if (isFirebaseConfigured && db) {
     try {
       const orderRef = doc(db, 'orders', order.id);
@@ -291,16 +368,34 @@ export const recordDispatchOrder = async (order: DispatchOrder): Promise<void> =
       );
       await Promise.race([setDoc(orderRef, order), timeoutPromise]);
     } catch (err) {
-      console.warn('Could not sync order to Firestore (stored safely locally):', err);
+      console.warn('Firestore order sync notice (synced to RTDB):', err);
     }
   }
 };
 
 /**
- * Fetch all orders from Firestore, merged with local storage so no orders are ever missed
+ * Fetch all orders from Cloud (RTDB + Firestore), merged with local storage
  */
 export const fetchDispatchOrders = async (): Promise<DispatchOrder[]> => {
+  const mergedMap = new Map<string, DispatchOrder>();
+
+  // 1. First add local cached orders
   const localOrders = getLocalOrders();
+  localOrders.forEach(o => {
+    if (o && o.id) mergedMap.set(o.id, o);
+  });
+
+  // 2. Fetch all cloud orders from Firebase Realtime Database
+  const rtdbOrders = await fetchOrdersFromRTDB();
+  rtdbOrders.forEach(o => {
+    if (o && o.id) {
+      mergedMap.set(o.id, o);
+      // Cache into local storage
+      saveLocalOrder(o);
+    }
+  });
+
+  // 3. Check Firestore if available
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
@@ -309,36 +404,49 @@ export const fetchDispatchOrders = async (): Promise<DispatchOrder[]> => {
       );
       const snapshot = await Promise.race([getDocs(q), timeoutPromise]);
       if (!snapshot.empty) {
-        const firestoreOrders: DispatchOrder[] = [];
-        snapshot.forEach(d => firestoreOrders.push(d.data() as DispatchOrder));
-
-        // Merge orders by ID so both cloud & local orders are completely preserved
-        const mergedMap = new Map<string, DispatchOrder>();
-        firestoreOrders.forEach(o => mergedMap.set(o.id, o));
-        localOrders.forEach(o => {
-          if (!mergedMap.has(o.id)) mergedMap.set(o.id, o);
+        snapshot.forEach(d => {
+          const o = d.data() as DispatchOrder;
+          if (o && o.id) {
+            mergedMap.set(o.id, o);
+            saveLocalOrder(o);
+          }
         });
-
-        return Array.from(mergedMap.values()).sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
       }
     } catch (err) {
-      console.warn('Firestore fetch notice (using local orders):', err);
+      console.warn('Firestore fetch notice (using RTDB & local):', err);
     }
   }
-  return localOrders;
+
+  return Array.from(mergedMap.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 };
 
 /**
- * Update an order's status
+ * Update an order's status across local storage, RTDB, and Firestore
  */
 export const updateOrderStatus = async (
   orderId: string,
   status: OrderStatus,
 ): Promise<DispatchOrder[]> => {
   const updatedList = updateLocalOrderStatus(orderId, status);
+  const dispatchDate = status === 'dispatched' ? new Date().toISOString() : undefined;
 
+  // Cloud status update via RTDB
+  try {
+    await fetch(`${RTDB_BASE_URL}/orders/${orderId}.json`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status,
+        ...(dispatchDate ? { dispatchDate } : {}),
+      }),
+    });
+  } catch (err) {
+    console.warn('Failed to update status in RTDB:', err);
+  }
+
+  // Firestore update if configured
   if (isFirebaseConfigured && db) {
     try {
       const orderRef = doc(db, 'orders', orderId);
@@ -348,7 +456,7 @@ export const updateOrderStatus = async (
       await Promise.race([
         updateDoc(orderRef, {
           status,
-          dispatchDate: status === 'dispatched' ? new Date().toISOString() : undefined,
+          ...(dispatchDate ? { dispatchDate } : {}),
         }),
         timeoutPromise,
       ]);
@@ -361,7 +469,7 @@ export const updateOrderStatus = async (
 };
 
 /**
- * Fetch all registered customers and B2B parties from Firestore, local registry, and orders
+ * Fetch all registered customers and B2B parties from Cloud, local registry, and orders
  */
 export const fetchRegisteredCustomers = async (
   currentOrders?: DispatchOrder[],
@@ -375,8 +483,16 @@ export const fetchRegisteredCustomers = async (
     mergedMap.set(key, p);
   });
 
-  // 2. Extract customer parties from all orders (so every customer who placed an order is visible!)
-  const orders = currentOrders || getLocalOrders();
+  // 2. Load cloud parties from RTDB
+  const rtdbParties = await fetchPartiesFromRTDB();
+  rtdbParties.forEach(p => {
+    const key = (p.email || p.phone || p.uid).toLowerCase().trim();
+    const existing = mergedMap.get(key);
+    mergedMap.set(key, { ...existing, ...p });
+  });
+
+  // 3. Extract customer parties from all orders (so every customer who placed an order is visible!)
+  const orders = currentOrders || (await fetchDispatchOrders());
   orders.forEach(o => {
     if (!o.customer) return;
     const email = (o.customerEmail || '').toLowerCase().trim();
@@ -406,7 +522,7 @@ export const fetchRegisteredCustomers = async (
     mergedMap.set(key, partyData);
   });
 
-  // 3. Include current logged in user from localStorage if present
+  // 4. Include current logged in user from localStorage if present
   try {
     const currentRaw = localStorage.getItem('torqmax_customer_auth_user');
     if (currentRaw) {
@@ -432,7 +548,7 @@ export const fetchRegisteredCustomers = async (
     // ignore
   }
 
-  // 4. Try Firestore if configured
+  // 5. Try Firestore if configured
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'customers'));

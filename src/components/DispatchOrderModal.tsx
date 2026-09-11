@@ -110,15 +110,38 @@ export const DispatchOrderModal: React.FC<DispatchOrderModalProps> = ({
       ? formData.phone
       : `+91 ${formData.phone.trim()}`;
 
+    const customerEmail =
+      user?.email ||
+      (() => {
+        try {
+          const raw = localStorage.getItem('torqmax_customer_auth_user');
+          return raw ? JSON.parse(raw)?.email : undefined;
+        } catch {
+          return undefined;
+        }
+      })();
+
+    const customerUid =
+      user?.uid ||
+      (() => {
+        try {
+          const raw = localStorage.getItem('torqmax_customer_auth_user');
+          return raw ? JSON.parse(raw)?.uid : undefined;
+        } catch {
+          return undefined;
+        }
+      })();
+
     const newOrder: DispatchOrder = {
       id: orderId,
       createdAt: new Date().toISOString(),
       customer: {
         ...formData,
         phone: formattedPhone,
+        notes: formData.notes?.trim() || undefined,
       },
-      customerEmail: user?.email || undefined,
-      customerUid: user?.uid || undefined,
+      customerEmail: customerEmail || undefined,
+      customerUid: customerUid || undefined,
       items,
       totalItems,
       totalUnits,
@@ -152,7 +175,7 @@ ${formData.businessName?.trim() ? `🏢 Shop/Firm: ${formData.businessName.trim(
 📍 City: ${formData.city.trim()}${formData.state ? `, ${formData.state}` : ''}
 🏠 Address: ${formData.address.trim()}
 📮 Pincode: ${formData.pincode.trim()}
-${formData.transportName?.trim() ? `🚚 Transport Pref: ${formData.transportName.trim()}\n` : ''}${formData.notes?.trim() ? `💬 Notes: ${formData.notes.trim()}\n` : ''}
+${formData.transportName?.trim() ? `🚚 Transport Pref: ${formData.transportName.trim()}\n` : ''}${formData.notes?.trim() ? `💬 Notes/Comments: ${formData.notes.trim()}\n` : ''}
 *ORDER ITEMS (${totalItems} model${totalItems > 1 ? 's' : ''}, ${totalUnits} total sets):*
 ${itemLines.join('\n\n')}
 
@@ -161,10 +184,17 @@ Please confirm availability and dispatch schedule!`;
 
     const waUrl = `https://wa.me/918401304787?text=${encodeURIComponent(waText)}`;
 
-    // Save order in database & localStorage (non-blocking)
-    recordDispatchOrder(newOrder).catch(err => console.warn('Order save notice:', err));
+    // Save order in cloud database & localStorage before WhatsApp navigation
+    try {
+      await Promise.race([
+        recordDispatchOrder(newOrder),
+        new Promise(res => setTimeout(res, 900)),
+      ]);
+    } catch (err) {
+      console.warn('Order save notice:', err);
+    }
 
-    // Open WhatsApp immediately within direct user interaction gesture
+    // Open WhatsApp immediately within user interaction gesture
     try {
       const isCapacitor = !!(window as any).Capacitor;
       const target = isCapacitor ? '_system' : '_blank';
@@ -317,6 +347,26 @@ Please confirm availability and dispatch schedule!`;
               {totalItems} models · {totalUnits} total sets
             </span>
           </div>
+
+          {/* Active Logged-in Customer Indicator */}
+          {user?.email && (
+            <div
+              style={{
+                background: 'rgba(59,130,246,0.1)',
+                border: '1px solid rgba(59,130,246,0.25)',
+                borderRadius: 10,
+                padding: '8px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: '0.78rem',
+                color: '#93c5fd',
+              }}
+            >
+              <span>👤</span>
+              <span>Ordering as authenticated customer: <strong style={{ color: '#fff' }}>{user.email}</strong></span>
+            </div>
+          )}
 
           {/* Name & Phone */}
           <div>
@@ -475,6 +525,30 @@ Please confirm availability and dispatch schedule!`;
               value={formData.transportName}
               onChange={handleChange}
               placeholder="e.g. V-Trans / Tirupati / Trackon"
+              style={{
+                width: '100%',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 10,
+                padding: '10px 14px',
+                color: '#fff',
+                fontSize: '0.9rem',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Order Comments / Special Notes */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', color: '#aaa', marginBottom: 6, fontWeight: 500 }}>
+              Order Comments / Special Instructions (Optional)
+            </label>
+            <input
+              type="text"
+              name="notes"
+              value={formData.notes || ''}
+              onChange={handleChange}
+              placeholder="e.g. Urgent dispatch / Packing instructions / Special comment"
               style={{
                 width: '100%',
                 background: 'rgba(255,255,255,0.05)',

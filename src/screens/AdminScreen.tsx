@@ -35,7 +35,9 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
     authIsOwner ||
     (currentUser?.email || '').toLowerCase() === OWNER_EMAIL.toLowerCase();
 
-  // Load orders and registered customers on mount or when user changes
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Load orders and registered customers on mount or when user changes + live cloud sync
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
@@ -47,10 +49,27 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
       }
     };
     load();
+
+    // Auto-sync every 8 seconds so owner sees new incoming customer orders in real time
+    const interval = setInterval(load, 8000);
+
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, [currentUser]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const orderData = await fetchDispatchOrders();
+      const customerData = await fetchRegisteredCustomers(orderData);
+      setOrders(orderData);
+      setCustomers(customerData);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedOrderForPrint) {
@@ -200,6 +219,8 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
         order.customer.name.toLowerCase().includes(query) ||
         order.customer.phone.toLowerCase().includes(query) ||
         order.customer.city.toLowerCase().includes(query) ||
+        (order.customerEmail && order.customerEmail.toLowerCase().includes(query)) ||
+        (order.customer.notes && order.customer.notes.toLowerCase().includes(query)) ||
         (order.customer.businessName && order.customer.businessName.toLowerCase().includes(query)) ||
         order.items.some(
           i =>
@@ -250,12 +271,14 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
       'Date',
       'Status',
       'Customer Name',
+      'Customer Email',
       'Shop/Firm',
       'Phone',
       'City',
       'Address',
       'Pincode',
       'Transport Pref',
+      'Customer Notes/Comments',
       'Total Items',
       'Total Units',
       'Items Breakdown',
@@ -271,12 +294,14 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
         `"${new Date(o.createdAt).toLocaleString('en-IN')}"`,
         `"${o.status.toUpperCase()}"`,
         `"${o.customer.name.replace(/"/g, '""')}"`,
+        `"${(o.customerEmail || '').replace(/"/g, '""')}"`,
         `"${(o.customer.businessName || '').replace(/"/g, '""')}"`,
         `"${o.customer.phone}"`,
         `"${o.customer.city.replace(/"/g, '""')}"`,
         `"${o.customer.address.replace(/"/g, '""')}"`,
         `"${o.customer.pincode}"`,
         `"${(o.transportName || '').replace(/"/g, '""')}"`,
+        `"${(o.customer.notes || '').replace(/"/g, '""')}"`,
         o.totalItems,
         o.totalUnits,
         `"${itemsBreakdown.replace(/"/g, '""')}"`,
@@ -583,6 +608,27 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            title="Refresh orders & parties from Cloud"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 8,
+              padding: '6px 11px',
+              color: '#fff',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <span>{isRefreshing ? '⏳' : '🔄'}</span>
+            <span>{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
+          </button>
+          <button
             onClick={handleExportCSV}
             style={{
               background: 'rgba(245,158,11,0.15)',
@@ -842,22 +888,61 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
                           )}
                         </div>
 
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                           <a
                             href={`tel:${order.customer.phone}`}
-                            style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+                            style={{ color: '#fff', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
                           >
                             📞 {order.customer.phone}
                           </a>
                           <span>📍 {order.customer.city}</span>
                           {order.customerEmail && (
-                            <span style={{ color: 'var(--text-muted)' }}>✉️ {order.customerEmail}</span>
+                            <span
+                              style={{
+                                color: '#60a5fa',
+                                background: 'rgba(59,130,246,0.12)',
+                                border: '1px solid rgba(59,130,246,0.25)',
+                                padding: '1px 8px',
+                                borderRadius: 6,
+                                fontWeight: 700,
+                              }}
+                            >
+                              ✉️ {order.customerEmail}
+                            </span>
+                          )}
+                          {order.transportName && (
+                            <span style={{ color: 'var(--amber)', fontSize: '0.72rem' }}>
+                              🚚 {order.transportName}
+                            </span>
                           )}
                         </div>
 
                         {order.customer.address && (
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.3, marginTop: 2 }}>
-                            {order.customer.address}
+                          <div style={{ fontSize: '0.73rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.3, marginTop: 2 }}>
+                            🏠 {order.customer.address}
+                          </div>
+                        )}
+
+                        {order.customer.notes && (
+                          <div
+                            style={{
+                              marginTop: 6,
+                              padding: '7px 10px',
+                              background: 'rgba(245,158,11,0.08)',
+                              border: '1px solid rgba(245,158,11,0.25)',
+                              borderRadius: 8,
+                              fontSize: '0.74rem',
+                              color: '#facc15',
+                              display: 'flex',
+                              gap: 6,
+                              alignItems: 'flex-start',
+                            }}
+                          >
+                            <span>💬</span>
+                            <div>
+                              <span style={{ fontWeight: 800, color: '#fff' }}>Comment / Notes: </span>
+                              <span style={{ color: '#facc15' }}>{order.customer.notes}</span>
+                            </div>
                           </div>
                         )}
                       </div>
