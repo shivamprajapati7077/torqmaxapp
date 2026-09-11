@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AppHeader } from '../components/AppHeader';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from '../components/AuthModal';
@@ -15,54 +15,66 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({ setActiveTab }) =>
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [orders, setOrders] = useState<DispatchOrder[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadCustomerOrders = useCallback(async (showLoading = false) => {
+    if (showLoading) setIsLoadingOrders(true);
+    setIsRefreshing(true);
+    try {
+      const all = await fetchDispatchOrders();
+      if (user) {
+        // Filter orders strictly for this customer (by email or uid or phone)
+        const userEmail = (user.email || '').toLowerCase().trim();
+        const userUid = user.uid || '';
+        let savedPhone = '';
+        try {
+          const rawCust = localStorage.getItem('torqmax_saved_customer_v1');
+          if (rawCust) {
+            const parsed = JSON.parse(rawCust);
+            savedPhone = (parsed.phone || '').replace(/\D/g, '');
+          }
+        } catch {
+          // ignore
+        }
+
+        const filtered = all.filter(o => {
+          const matchEmail = Boolean(userEmail && o.customerEmail && o.customerEmail.toLowerCase().trim() === userEmail);
+          const matchUid = Boolean(userUid && o.customerUid && o.customerUid === userUid);
+          const matchPhone = Boolean(savedPhone && o.customer?.phone && o.customer.phone.replace(/\D/g, '').includes(savedPhone));
+          return matchEmail || matchUid || matchPhone;
+        });
+
+        setOrders(filtered);
+      } else {
+        setOrders([]);
+      }
+    } catch (err) {
+      console.warn('Order fetch notice:', err);
+    } finally {
+      if (showLoading) setIsLoadingOrders(false);
+      setIsRefreshing(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    let isMounted = true;
-    const loadCustomerOrders = async () => {
-      setIsLoadingOrders(true);
-      try {
-        const all = await fetchDispatchOrders();
-        if (isMounted) {
-          if (user) {
-            // Filter orders strictly for this customer (by email or uid)
-            const userEmail = (user.email || '').toLowerCase().trim();
-            const userUid = user.uid || '';
-            let savedPhone = '';
-            try {
-              const rawCust = localStorage.getItem('torqmax_saved_customer_v1');
-              if (rawCust) {
-                const parsed = JSON.parse(rawCust);
-                savedPhone = (parsed.phone || '').replace(/\D/g, '');
-              }
-            } catch {
-              // ignore
-            }
+    loadCustomerOrders(true);
 
-            const filtered = all.filter(o => {
-              const matchEmail = Boolean(userEmail && o.customerEmail && o.customerEmail.toLowerCase().trim() === userEmail);
-              const matchUid = Boolean(userUid && o.customerUid && o.customerUid === userUid);
-              const matchPhone = Boolean(savedPhone && o.customer?.phone && o.customer.phone.replace(/\D/g, '').includes(savedPhone));
-              return matchEmail || matchUid || matchPhone;
-            });
+    // Auto-poll every 4 seconds so when admin updates status, customer screen updates in real time!
+    const interval = setInterval(() => {
+      loadCustomerOrders(false);
+    }, 4000);
 
-            // Only display this customer's actual orders (never show dummy orders)
-            setOrders(filtered);
-          } else {
-            setOrders([]);
-          }
-        }
-      } catch (err) {
-        console.warn('Order fetch notice:', err);
-      } finally {
-        if (isMounted) setIsLoadingOrders(false);
-      }
-    };
+    // Refresh when app gains focus or tab becomes visible
+    const handleFocus = () => loadCustomerOrders(false);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
 
-    loadCustomerOrders();
     return () => {
-      isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
-  }, [user]);
+  }, [loadCustomerOrders]);
 
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
@@ -271,12 +283,35 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({ setActiveTab }) =>
           {/* Customer Order History Section */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                Order History
-              </h3>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                {orders.length} order{orders.length === 1 ? '' : 's'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                  Order History
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  ({orders.length})
+                </span>
+              </div>
+              <button
+                onClick={() => loadCustomerOrders(true)}
+                disabled={isRefreshing}
+                title="Check latest order and dispatch status"
+                style={{
+                  background: 'rgba(245,158,11,0.1)',
+                  border: '1px solid rgba(245,158,11,0.25)',
+                  borderRadius: 8,
+                  padding: '5px 12px',
+                  color: 'var(--amber)',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: isRefreshing ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                <span>{isRefreshing ? '⏳' : '🔄'}</span>
+                <span>{isRefreshing ? 'Checking...' : 'Refresh Status'}</span>
+              </button>
             </div>
 
             {isLoadingOrders ? (

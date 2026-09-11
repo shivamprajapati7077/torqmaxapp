@@ -359,22 +359,16 @@ export const recordDispatchOrder = async (order: DispatchOrder): Promise<void> =
   // 1. Cloud Sync via Firebase Realtime Database (guaranteed delivery)
   await syncOrderToRTDB(order);
 
-  // 2. Parallel Firestore attempt if configured
+  // 2. Background Firestore attempt if configured
   if (isFirebaseConfigured && db) {
-    try {
-      const orderRef = doc(db, 'orders', order.id);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Firestore timeout')), 2500),
-      );
-      await Promise.race([setDoc(orderRef, order), timeoutPromise]);
-    } catch (err) {
+    setDoc(doc(db, 'orders', order.id), order).catch(err => {
       console.warn('Firestore order sync notice (synced to RTDB):', err);
-    }
+    });
   }
 };
 
 /**
- * Fetch all orders from Cloud (RTDB + Firestore), merged with local storage
+ * Fetch all orders from Cloud (RTDB + local cache), with instant response
  */
 export const fetchDispatchOrders = async (): Promise<DispatchOrder[]> => {
   const mergedMap = new Map<string, DispatchOrder>();
@@ -394,28 +388,6 @@ export const fetchDispatchOrders = async (): Promise<DispatchOrder[]> => {
       saveLocalOrder(o);
     }
   });
-
-  // 3. Check Firestore if available
-  if (isFirebaseConfigured && db) {
-    try {
-      const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Firestore timeout')), 2500),
-      );
-      const snapshot = await Promise.race([getDocs(q), timeoutPromise]);
-      if (!snapshot.empty) {
-        snapshot.forEach(d => {
-          const o = d.data() as DispatchOrder;
-          if (o && o.id) {
-            mergedMap.set(o.id, o);
-            saveLocalOrder(o);
-          }
-        });
-      }
-    } catch (err) {
-      console.warn('Firestore fetch notice (using RTDB & local):', err);
-    }
-  }
 
   return Array.from(mergedMap.values()).sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -446,23 +418,14 @@ export const updateOrderStatus = async (
     console.warn('Failed to update status in RTDB:', err);
   }
 
-  // Firestore update if configured
+  // Background Firestore update if configured
   if (isFirebaseConfigured && db) {
-    try {
-      const orderRef = doc(db, 'orders', orderId);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Firestore timeout')), 2500),
-      );
-      await Promise.race([
-        updateDoc(orderRef, {
-          status,
-          ...(dispatchDate ? { dispatchDate } : {}),
-        }),
-        timeoutPromise,
-      ]);
-    } catch (err) {
+    updateDoc(doc(db, 'orders', orderId), {
+      status,
+      ...(dispatchDate ? { dispatchDate } : {}),
+    }).catch(err => {
       console.warn('Failed to update status in Firestore:', err);
-    }
+    });
   }
 
   return updatedList;
