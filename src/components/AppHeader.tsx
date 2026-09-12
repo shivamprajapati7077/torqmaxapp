@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import type { Tab } from '../App';
 
 interface AppHeaderProps {
@@ -12,6 +13,7 @@ interface AppHeaderProps {
 export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true, setActiveTab }) => {
   const { totalItems } = useCart();
   const { user, isOwner } = useAuth();
+  const { unreadCount, openDrawer } = useNotifications();
   const pressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startLongPress = () => {
@@ -130,6 +132,58 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title, showLogo = true, se
               <circle cx="12" cy="7" r="4" />
               <path d="M5.5 21a8.38 8.38 0 0113 0" />
             </svg>
+          )}
+        </button>
+
+        {/* TorqMax In-App Notifications Bell */}
+        <button
+          onClick={openDrawer}
+          aria-label="Notifications"
+          title="TorqMax Notifications"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: unreadCount > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
+            border: unreadCount > 0 ? '1.5px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={unreadCount > 0 ? '#F59E0B' : '#888'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+
+          {/* Badge */}
+          {unreadCount > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                minWidth: 18,
+                height: 18,
+                padding: '0 4px',
+                borderRadius: '999px',
+                background: 'var(--amber)',
+                color: '#000',
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid #0D0D0D',
+                animation: 'cartBadgePop 0.3s ease-out',
+              }}
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </div>
           )}
         </button>
 

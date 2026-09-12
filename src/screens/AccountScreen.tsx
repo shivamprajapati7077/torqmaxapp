@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AppHeader } from '../components/AppHeader';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { AuthModal } from '../components/AuthModal';
 import { fetchDispatchOrders } from '../firebase';
 import type { DispatchOrder, OrderStatus } from '../types/order';
@@ -12,6 +13,7 @@ interface AccountScreenProps {
 
 export const AccountScreen: React.FC<AccountScreenProps> = ({ setActiveTab }) => {
   const { user, isOwner, logout } = useAuth();
+  const { unreadCount, openDrawer, permissionStatus } = useNotifications();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [orders, setOrders] = useState<DispatchOrder[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
@@ -279,6 +281,70 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({ setActiveTab }) =>
               </button>
             </div>
           )}
+
+          {/* Notifications Quick Action Card */}
+          <div
+            onClick={openDrawer}
+            style={{
+              background: 'var(--surface)',
+              border: unreadCount > 0 ? '1px solid rgba(245,158,11,0.35)' : '1px solid var(--border)',
+              borderRadius: 16,
+              padding: '14px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: unreadCount > 0 ? '0 4px 16px rgba(245,158,11,0.1)' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: unreadCount > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
+                  border: unreadCount > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.15rem',
+                  flexShrink: 0,
+                }}
+              >
+                🔔
+              </div>
+              <div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  TorqMax In-App Notifications
+                  {unreadCount > 0 && (
+                    <span
+                      style={{
+                        background: 'var(--amber)',
+                        color: '#000',
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: '999px',
+                      }}
+                    >
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                  {permissionStatus === 'granted'
+                    ? 'Device alerts active • Tap to view dispatch updates'
+                    : 'Tap to view alerts & enable instant status notifications'}
+                </div>
+              </div>
+            </div>
+
+            <span style={{ color: 'var(--amber)', fontSize: '0.82rem', fontWeight: 700, flexShrink: 0 }}>
+              View →
+            </span>
+          </div>
 
           {/* Customer Order History Section */}
           <div>

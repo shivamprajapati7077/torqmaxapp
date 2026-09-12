@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { generateOrderId } from '../services/orderStorage';
 import { recordDispatchOrder } from '../firebase';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import type { DispatchOrder, OrderCustomer, OrderItem } from '../types/order';
 
 interface DispatchOrderModalProps {
@@ -24,6 +25,7 @@ export const DispatchOrderModal: React.FC<DispatchOrderModalProps> = ({
   onOrderCompleted,
 }) => {
   const { user } = useAuth();
+  const { notify } = useNotifications();
   const [formData, setFormData] = useState<OrderCustomer>(() => {
     try {
       const saved = localStorage.getItem(SAVED_CUSTOMER_KEY);
@@ -205,6 +207,14 @@ Please confirm availability and dispatch schedule!`;
     } catch {
       window.location.href = waUrl;
     }
+
+    // Send in-app notification to customer directly in the TorqMax app
+    notify({
+      title: 'Order All Set! 🎉',
+      message: `Your TorqMax order #${orderId} is confirmed and received! We will alert you here as soon as it is dispatched.`,
+      type: 'order_placed',
+      orderId,
+    });
 
     setIsSubmitting(false);
     onOrderCompleted?.();

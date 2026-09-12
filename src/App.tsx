@@ -10,6 +10,9 @@ import { AdminScreen } from './screens/AdminScreen';
 import { BottomNav } from './components/BottomNav';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { NotificationToast } from './components/NotificationToast';
+import { NotificationDrawer } from './components/NotificationDrawer';
 
 
 export type Tab = 'home' | 'products' | 'cart' | 'account' | 'about' | 'contact' | 'admin';
@@ -53,17 +56,25 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <CartProvider>
-        {showSplash && <SplashScreen fading={splashFading} onDismiss={dismissSplash} />}
+      <NotificationProvider>
+        <CartProvider>
+          {showSplash && <SplashScreen fading={splashFading} onDismiss={dismissSplash} />}
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {renderScreen()}
-        </div>
+          {/* Floating In-App Notification Toast */}
+          <NotificationToast />
 
-        {activeTab !== 'admin' && (
-          <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
-        )}
-      </CartProvider>
+          {/* Slide-out Notification Drawer */}
+          <NotificationDrawer onNavigateToAccount={() => setActiveTab('account')} />
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {renderScreen()}
+          </div>
+
+          {activeTab !== 'admin' && (
+            <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+          )}
+        </CartProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
