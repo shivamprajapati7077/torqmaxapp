@@ -33,13 +33,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return '';
     }
   });
-  const [pinInput, setPinInput] = useState('');
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
   const isNative = Capacitor.isNativePlatform();
-  const isOwnerTyping = emailInput.trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
 
   const handleDirectSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,11 +49,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    if (isOwnerTyping) {
-      if (pinInput.trim() !== '7077' && pinInput.trim().toLowerCase() !== 'torqmax') {
-        setError('Incorrect Owner PIN. Enter 7077 to unlock Owner Privileges.');
-        return;
-      }
+    // Protect Owner account from customer modal
+    if (cleanEmail === OWNER_EMAIL.toLowerCase()) {
+      setError('This email address is reserved for TorqMax Administration. Please enter your personal or shop email address.');
+      return;
     }
 
     try {
@@ -304,39 +301,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             />
           </div>
 
-          {/* Owner PIN field if typing owner email */}
-          {isOwnerTyping && (
-            <div style={{ textAlign: 'left', animation: 'fadeIn 0.2s ease' }}>
-              <label style={{ fontSize: '0.72rem', color: 'var(--amber)', fontWeight: 700, display: 'block', marginBottom: 4 }}>
-                👑 Owner Access PIN (7077) *
-              </label>
-              <input
-                type="password"
-                required
-                placeholder="Enter 7077"
-                value={pinInput}
-                onChange={e => setPinInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'rgba(245,158,11,0.08)',
-                  border: '1.5px solid var(--amber)',
-                  borderRadius: 10,
-                  padding: '10px 12px',
-                  color: '#fff',
-                  fontSize: '0.88rem',
-                  outline: 'none',
-                  letterSpacing: '0.2em',
-                }}
-              />
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={isLoading}
             style={{
               width: '100%',
-              marginTop: 4,
+              marginTop: 6,
               padding: '12px',
               borderRadius: 12,
               background: 'linear-gradient(135deg, var(--amber) 0%, #D97706 100%)',
@@ -349,35 +319,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               letterSpacing: '0.02em',
             }}
           >
-            {isLoading ? 'Signing In...' : isOwnerTyping ? 'Sign In as Owner →' : 'Sign In as Partner →'}
+            {isLoading ? 'Signing In...' : 'Sign In as Partner →'}
           </button>
         </form>
-
-        {/* Quick Owner Access Link */}
-        <div style={{ marginTop: 8 }}>
-          <button
-            type="button"
-            onClick={() => {
-              setEmailInput(OWNER_EMAIL);
-              setNameInput('TorqMax Owner');
-              setPinInput('7077');
-              setError('');
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--amber)',
-              fontSize: '0.74rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              padding: '4px',
-              opacity: 0.85,
-            }}
-          >
-            👑 TorqMax Owner? Click for 1-Tap Login
-          </button>
-        </div>
 
         {/* Web Browser Google Popup Option (Hidden on Android APK to prevent blank WebView) */}
         {!isNative ? (

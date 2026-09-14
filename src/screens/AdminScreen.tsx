@@ -169,7 +169,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
 
   const handleLogin = async () => {
     if (isNative) {
-      setAdminError('In the Android App, please unlock directly using Owner PIN 7077 above.');
+      setAdminError('In the Android App, please unlock using your Owner Secret Key above.');
       return;
     }
     try {
@@ -186,11 +186,11 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
     e.preventDefault();
     setAdminError('');
     if (adminPin.trim() !== '7077' && adminPin.trim().toLowerCase() !== 'torqmax') {
-      setAdminError('Invalid Owner PIN. Enter 7077 to unlock.');
+      setAdminError('Incorrect Owner Secret Key. Access denied.');
       return;
     }
     try {
-      await loginDirectly(OWNER_EMAIL, 'TorqMax Owner');
+      await loginDirectly(OWNER_EMAIL, 'TorqMax Owner', undefined, true);
     } catch (err: any) {
       setAdminError(err?.message || 'Login failed.');
     }
@@ -389,7 +389,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
             Admin Dispatch Log
           </h2>
           <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 20 }}>
-            Sign in with the TorqMax Google account or enter Owner PIN to view orders, dispatch logs, and party profiles.
+            Sign in with the TorqMax Google account or enter Owner Secret Key to view orders, dispatch logs, and party profiles.
           </p>
 
           {adminError && (
@@ -413,12 +413,12 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
           <form onSubmit={handlePinLogin} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
             <div style={{ textAlign: 'left' }}>
               <label style={{ fontSize: '0.72rem', color: 'var(--amber)', fontWeight: 700, display: 'block', marginBottom: 4 }}>
-                👑 Quick Owner PIN (7077)
+                🔒 Owner Secret Access Key
               </label>
               <input
                 type="password"
                 required
-                placeholder="Enter 7077"
+                placeholder="Enter Secret Key"
                 value={adminPin}
                 onChange={e => setAdminPin(e.target.value)}
                 style={{

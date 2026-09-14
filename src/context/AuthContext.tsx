@@ -24,7 +24,7 @@ interface AuthContextValue {
   isLoading: boolean;
   isOwner: boolean;
   loginWithGoogle: () => Promise<AppUser>;
-  loginDirectly: (email: string, displayName: string, phone?: string) => Promise<AppUser>;
+  loginDirectly: (email: string, displayName: string, phone?: string, asOwner?: boolean) => Promise<AppUser>;
   logout: () => Promise<void>;
 }
 
@@ -114,11 +114,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     displayName: string,
     phone?: string,
+    asOwner = false,
   ): Promise<AppUser> => {
     setIsLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const isOwner = cleanEmail === OWNER_EMAIL.toLowerCase();
+      // Owner privilege is ONLY granted if explicitly verified via asOwner flag
+      const isOwner = asOwner === true && cleanEmail === OWNER_EMAIL.toLowerCase();
       const cleanName = displayName.trim() || (isOwner ? 'TorqMax Owner' : 'B2B Partner');
       const uid = 'usr_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
 
