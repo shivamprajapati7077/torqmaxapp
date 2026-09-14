@@ -31,9 +31,19 @@ export default function App() {
     (window as any).__setActiveTab = (t: Tab) => setActiveTab(t);
     (window as any).__openAdmin = () => setActiveTab('admin');
 
+    const handleHash = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (hash === 'admin') {
+        setActiveTab('admin');
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
+      window.removeEventListener('hashchange', handleHash);
     };
   }, []);
 

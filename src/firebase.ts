@@ -234,15 +234,18 @@ export const getLocalRegisteredParties = (): RegisteredCustomer[] => {
 // Firebase Realtime Database Endpoint (Guaranteed Cloud Sync for all cross-device orders & parties)
 const RTDB_BASE_URL = 'https://torqmax-90fa1-default-rtdb.firebaseio.com';
 
-export const syncOrderToRTDB = async (order: DispatchOrder): Promise<void> => {
+export const syncOrderToRTDB = async (order: DispatchOrder): Promise<boolean> => {
   try {
-    await fetch(`${RTDB_BASE_URL}/orders/${order.id}.json`, {
+    const res = await fetch(`${RTDB_BASE_URL}/orders/${order.id}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(order),
+      keepalive: true,
     });
+    return res.ok;
   } catch (err) {
     console.warn('Cloud sync (RTDB) order notice:', err);
+    return false;
   }
 };
 
@@ -254,6 +257,7 @@ export const syncPartyToRTDB = async (party: RegisteredCustomer): Promise<void> 
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(party),
+      keepalive: true,
     });
   } catch (err) {
     console.warn('Cloud sync (RTDB) party notice:', err);
@@ -263,8 +267,12 @@ export const syncPartyToRTDB = async (party: RegisteredCustomer): Promise<void> 
 export const fetchOrdersFromRTDB = async (): Promise<DispatchOrder[]> => {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`${RTDB_BASE_URL}/orders.json`, { signal: controller.signal });
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    // Cache-busting URL parameter + cache: 'no-store' ensures fresh cloud orders on every poll & refresh
+    const res = await fetch(`${RTDB_BASE_URL}/orders.json?nocache=${Date.now()}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
     clearTimeout(timeoutId);
     if (!res.ok) return [];
     const data = await res.json();
@@ -283,8 +291,11 @@ export const fetchOrdersFromRTDB = async (): Promise<DispatchOrder[]> => {
 export const fetchPartiesFromRTDB = async (): Promise<RegisteredCustomer[]> => {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`${RTDB_BASE_URL}/parties.json`, { signal: controller.signal });
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`${RTDB_BASE_URL}/parties.json?nocache=${Date.now()}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
     clearTimeout(timeoutId);
     if (!res.ok) return [];
     const data = await res.json();

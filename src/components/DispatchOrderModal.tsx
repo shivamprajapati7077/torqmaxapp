@@ -190,22 +190,22 @@ Please confirm availability and dispatch schedule!`;
     try {
       await Promise.race([
         recordDispatchOrder(newOrder),
-        new Promise(res => setTimeout(res, 900)),
+        new Promise(res => setTimeout(res, 3500)),
       ]);
     } catch (err) {
       console.warn('Order save notice:', err);
     }
 
-    // Open WhatsApp immediately within user interaction gesture
+    // Open WhatsApp in new tab or external app
     try {
       const isCapacitor = !!(window as any).Capacitor;
       const target = isCapacitor ? '_system' : '_blank';
       const opened = window.open(waUrl, target);
-      if (!opened) {
+      if (!opened && isCapacitor) {
         window.location.href = waUrl;
       }
     } catch {
-      window.location.href = waUrl;
+      // ignore
     }
 
     // Send in-app notification to customer directly in the TorqMax app

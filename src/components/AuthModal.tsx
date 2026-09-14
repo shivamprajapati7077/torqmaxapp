@@ -412,6 +412,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span>✓</span> 100% Free & Secure B2B Partner Access
           </div>
         </div>
+
+        {/* Discreet Owner Portal Access Button */}
+        <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              if ((window as any).__openAdmin) {
+                (window as any).__openAdmin();
+              } else {
+                window.location.hash = 'admin';
+              }
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--amber)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              opacity: 0.9,
+            }}
+          >
+            <span>🔐</span>
+            <span>Owner / Admin Portal Access</span>
+          </button>
+        </div>
       </div>
     </div>
   );

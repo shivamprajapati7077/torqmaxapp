@@ -50,14 +50,14 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
     };
     load();
 
-    // Auto-sync every 8 seconds so owner sees new incoming customer orders in real time
-    const interval = setInterval(load, 8000);
+    // Auto-sync every 5 seconds so owner sees new incoming customer orders in real time
+    const interval = setInterval(load, 5000);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [currentUser]);
+  }, [currentUser, isOwner]);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -191,6 +191,10 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
     }
     try {
       await loginDirectly(OWNER_EMAIL, 'TorqMax Owner', undefined, true);
+      const orderData = await fetchDispatchOrders();
+      const customerData = await fetchRegisteredCustomers(orderData);
+      setOrders(orderData);
+      setCustomers(customerData);
     } catch (err: any) {
       setAdminError(err?.message || 'Login failed.');
     }
@@ -331,8 +335,8 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
     }
   };
 
-  // If not logged in, show Auth Gate
-  if (!currentUser) {
+  // Owner Access Gate: Shown whenever not authenticated as Owner (whether guest or customer)
+  if (!isOwner) {
     return (
       <div
         style={{
@@ -347,28 +351,28 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
       >
         <div
           style={{
-            maxWidth: 380,
+            maxWidth: 390,
             width: '100%',
             background: 'var(--surface)',
             border: '1px solid var(--border)',
             borderRadius: 20,
-            padding: 30,
+            padding: 28,
             textAlign: 'center',
             boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
           }}
         >
           <div
             style={{
-              width: 64,
-              height: 64,
+              width: 60,
+              height: 60,
               borderRadius: '50%',
               background: 'rgba(245,158,11,0.12)',
               border: '1px solid rgba(245,158,11,0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 16px',
-              fontSize: '1.8rem',
+              margin: '0 auto 14px',
+              fontSize: '1.7rem',
             }}
           >
             🔐
@@ -385,12 +389,51 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
           >
             Owner Portal
           </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginBottom: 8 }}>
-            Admin Dispatch Log
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginBottom: 8 }}>
+            Admin Dispatch Console
           </h2>
-          <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 20 }}>
-            Sign in with the TorqMax Google account or enter Owner Secret Key to view orders, dispatch logs, and party profiles.
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 16 }}>
+            Authorized owner access only. Enter your Owner Secret Key to view live customer orders, dispatch slips, and partner logs.
           </p>
+
+          {currentUser && (
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 10,
+                padding: '8px 12px',
+                fontSize: '0.76rem',
+                color: 'var(--text-secondary)',
+                marginBottom: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                👤 {currentUser.email}
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#f87171',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  padding: 0,
+                  flexShrink: 0,
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
 
           {adminError && (
             <div
@@ -409,7 +452,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
             </div>
           )}
 
-          {/* Direct Owner PIN Login (immune to WebView popup issues) */}
+          {/* Direct Owner PIN Login */}
           <form onSubmit={handlePinLogin} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
             <div style={{ textAlign: 'left' }}>
               <label style={{ fontSize: '0.72rem', color: 'var(--amber)', fontWeight: 700, display: 'block', marginBottom: 4 }}>
@@ -421,6 +464,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
                 placeholder="Enter Secret Key"
                 value={adminPin}
                 onChange={e => setAdminPin(e.target.value)}
+                autoComplete="current-password"
                 style={{
                   width: '100%',
                   background: 'rgba(245,158,11,0.08)',
@@ -455,15 +499,15 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
 
           {!isNative && (
             <>
-              {/* Divider */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 12px', color: 'var(--text-muted)', fontSize: '0.68rem', textTransform: 'uppercase' }}>
                 <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
-                <span>Or via Browser</span>
+                <span>Or via Google</span>
                 <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
               </div>
 
               <button
                 onClick={handleLogin}
+                type="button"
                 style={{
                   width: '100%',
                   padding: '10px 14px',
@@ -499,13 +543,14 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>Sign in with Google (Web)</span>
+                <span>Sign in with Google (Owner)</span>
               </button>
             </>
           )}
 
           <div style={{ marginTop: 20 }}>
             <button
+              type="button"
               onClick={() => setActiveTab('home')}
               style={{
                 background: 'none',
@@ -520,45 +565,6 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setActiveTab }) => {
             </button>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  // Unauthorized screen
-  if (!isOwner) {
-    return (
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          background: 'var(--bg)',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ fontSize: '3rem', marginBottom: 12 }}>⛔</div>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f87171', marginBottom: 8 }}>
-          Access Denied
-        </h2>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: 360, marginBottom: 20 }}>
-          You are signed in as <strong>{currentUser.email}</strong>, which does not have administrator privileges.
-        </p>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: 'var(--surface-hover)',
-            border: '1px solid var(--border)',
-            padding: '10px 20px',
-            borderRadius: 10,
-            color: '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          Sign out & switch account
-        </button>
       </div>
     );
   }

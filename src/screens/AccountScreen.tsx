@@ -279,6 +279,24 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({ setActiveTab }) =>
               >
                 Sign In with Google →
               </button>
+
+              <div style={{ marginTop: 14 }}>
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--amber)',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    opacity: 0.9,
+                  }}
+                >
+                  🔐 Owner Portal & Dispatch Console →
+                </button>
+              </div>
             </div>
           )}
 
@@ -500,6 +518,30 @@ export const AccountScreen: React.FC<AccountScreenProps> = ({ setActiveTab }) =>
                 })}
               </div>
             )}
+          </div>
+
+          {/* Discreet Owner Portal Access */}
+          <div style={{ textAlign: 'center', marginTop: 28, paddingBottom: 20 }}>
+            <button
+              onClick={() => setActiveTab('admin')}
+              style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 10,
+                padding: '8px 16px',
+                color: 'var(--text-muted)',
+                fontSize: '0.74rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>🔒</span>
+              <span>Owner & Admin Console Portal</span>
+            </button>
           </div>
         </div>
       </div>
